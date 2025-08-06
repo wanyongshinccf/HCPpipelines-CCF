@@ -14,7 +14,7 @@ elif [[ ${localHCPhorse} == "linux" ]]; then
 elif [[ ${localHCPhorse} == "ideapc" ]]; then
     export HCPPIPEDIR="/home/shinw/SW/HCPpipelines-5.0.0/" 
 fi
-echo $HCPPIPEDIR
+
 # Don't edit this section, it allows sourcing SetUp... without editing it if you set things in advance
 if [[ -z "$HCPPIPEDIR" ]]
 then
@@ -48,7 +48,7 @@ elif [ ${localHCPhorse} == "linux" ]; then
     export HCPCIFTIRWDIR="$HCPPIPEDIR"/global/matlab/cifti-matlab
     export GRADUNWARPDIR=/Users/wanyongshin/fsl/bin
 elif [ ${localHCPhorse} == "ideapc" ]; then
-    export HCPCCFPIPEDIR="/home/shinw/SW/HCPPipelines-CCF" # (CCF, W.S)
+    export HCPCCFPIPEDIR="/home/shinw/SW/HCPpipelines-CCF" # (CCF, W.S)
     ## Edit this section: set up other environment variables
     #export MSMBINDIR="${HCPPIPEDIR}/tools"
     #export MATLAB_COMPILER_RUNTIME=/export/matlab/MCR/R2022b
