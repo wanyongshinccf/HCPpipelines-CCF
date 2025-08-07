@@ -158,7 +158,7 @@ SCRIPT_NAME=`basename "$0"`
 echo $SCRIPT_NAME
 
 if [ -n "${command_line_specified_task}" ]; then
-    export TaskList=(${command_line_specified_local})
+    TaskList=${command_line_specified_local}
 else
     TaskList=()
     TaskList+=(rfMRI_REST1_RL)
