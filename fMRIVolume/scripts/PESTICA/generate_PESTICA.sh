@@ -33,36 +33,42 @@ elif [ $FSLOUTPUTTYPE == "NIFTI" ]; then
     AFNIINPUTPOSTFIX="nii"
 fi
 
+# step 0: normalilzed and detrending
+3dDetrend -normalize -polort A \
+    -prefix ${OutputFolder}/det.norm.$AFNIINPUTPOSTFIX \
+    ${InputfMRI}.$AFNIINPUTPOSTFIX -overwrite
+
 # step 1: generate coefficient map of cardiac and respiratory response function
-3dDeconvolve -polort A \
-    -input  ${InputfMRI}.$AFNIINPUTPOSTFIX \
-    -x1D    ${OutputFolder}/__rm.polort.1D \
-    -x1D_stop 
 1d_tool.py -demean \
     -infile ${PhysioFolder}/RetroTS.PMU.card.slibase.1D \
-    -write  ${OutputFolder}/__rm.card.demean.1D 
+    -write  ${OutputFolder}/__rm.card.demean.1D \
+    -overwrite
 1d_tool.py -demean \
     -infile ${PhysioFolder}/RetroTS.PMU.resp.slibase.1D \
-    -write  ${OutputFolder}/__rm.resp.demean.1D 
+    -write  ${OutputFolder}/__rm.resp.demean.1D \
+    -overwrite
+1d_tool.py -demean \
+    -infile ${PhysioFolder}/RetroTS.PMU.slibase.1D \
+    -write  ${OutputFolder}/__rm.retroicor.demean.1D \
+    -overwrite
 
 # step1: calculate coefficient map fromardiac/respiratory response function
 # regress out all nuisances here
 3dREMLfit               \
-    -input      ${InputfMRI}.${AFNIINPUTPOSTFIX}   \
+    -input      ${OutputFolder}/det.norm.$AFNIINPUTPOSTFIX \
     -mask       ${MaskfMRI}.${AFNIINPUTPOSTFIX} \
-    -matrix     ${OutputFolder}/__rm.polort.1D \
-    -Oerrts     ${OutputFolder}/errts.polort.${AFNIINPUTPOSTFIX}  \
+    -slibase_sm ${OutputFolder}/__rm.retroicor.demean.1D \
+    -Oerrts     ${OutputFolder}/errts.retroicor.${AFNIINPUTPOSTFIX}  \
+    -Obeta      ${OutputFolder}/beta.retroicor.${AFNIINPUTPOSTFIX}  \
     -GOFORIT -overwrite       
 3dREMLfit               \
-    -input      ${InputfMRI}.${AFNIINPUTPOSTFIX}   \
-    -matrix     ${OutputFolder}/__rm.polort.1D \
+    -input      ${OutputFolder}/det.norm.$AFNIINPUTPOSTFIX \
     -slibase_sm ${OutputFolder}/__rm.card.demean.1D \
     -Oerrts     ${OutputFolder}/errts.card.${AFNIINPUTPOSTFIX}  \
     -Obeta      ${OutputFolder}/beta.card.${AFNIINPUTPOSTFIX}  \
     -GOFORIT -overwrite       
 3dREMLfit               \
-    -input      ${InputfMRI}.${AFNIINPUTPOSTFIX}   \
-    -matrix     ${OutputFolder}/__rm.polort.1D \
+    -input      ${OutputFolder}/det.norm.$AFNIINPUTPOSTFIX \
     -slibase_sm ${OutputFolder}/__rm.resp.demean.1D \
     -Oerrts     ${OutputFolder}/errts.resp.${AFNIINPUTPOSTFIX}  \
     -Obeta      ${OutputFolder}/beta.resp.${AFNIINPUTPOSTFIX}  \
@@ -70,51 +76,57 @@ fi
 
 # calculate SOS reduction
 3dTstat -SOS \
-    -mask       ${MaskfMRI}.${AFNIINPUTPOSTFIX} \
-    -prefix ${OutputFolder}/SOS.polort.${AFNIINPUTPOSTFIX} \
-    ${OutputFolder}/errts.polort.${AFNIINPUTPOSTFIX}
+    -mask   ${MaskfMRI}.${AFNIINPUTPOSTFIX} \
+    -prefix ${OutputFolder}/SOS.retroicor.${AFNIINPUTPOSTFIX} \
+    ${OutputFolder}/errts.retroicor.${AFNIINPUTPOSTFIX} -overwrite
 3dTstat -SOS \
-    -mask       ${MaskfMRI}.${AFNIINPUTPOSTFIX} \
+    -mask   ${MaskfMRI}.${AFNIINPUTPOSTFIX} \
     -prefix ${OutputFolder}/SOS.card.${AFNIINPUTPOSTFIX} \
-    ${OutputFolder}/errts.card.${AFNIINPUTPOSTFIX}
+    ${OutputFolder}/errts.card.${AFNIINPUTPOSTFIX} -overwrite
 3dTstat -SOS \
-    -mask       ${MaskfMRI}.${AFNIINPUTPOSTFIX} \
+    -mask   ${MaskfMRI}.${AFNIINPUTPOSTFIX} \
     -prefix ${OutputFolder}/SOS.resp.${AFNIINPUTPOSTFIX} \
-    ${OutputFolder}/errts.resp.${AFNIINPUTPOSTFIX}
+    ${OutputFolder}/errts.resp.${AFNIINPUTPOSTFIX} -overwrite
 
+# calculate Fmap
+let "doffull=$tdim-8"
 3dcalc \
-    -a ${OutputFolder}/SOS.polort.${AFNIINPUTPOSTFIX} \
+    -a ${OutputFolder}/SOS.retroicor.${AFNIINPUTPOSTFIX} \
     -b ${OutputFolder}/SOS.card.${AFNIINPUTPOSTFIX} \
     -c ${MaskfMRI}.${AFNIINPUTPOSTFIX} \
-    -expr "(a-b)/a*step(c)/4*${tdim}" \
-    -prefix ${OutputFolder}/Fmap.card.${AFNIINPUTPOSTFIX} 
+    -expr "(b-a)/b*step(c)/4*${doffull}" \
+    -prefix ${OutputFolder}/Fmap.resp.${AFNIINPUTPOSTFIX} \
+    -overwrite
 
 3dcalc \
-    -a ${OutputFolder}/SOS.polort.${AFNIINPUTPOSTFIX} \
+    -a ${OutputFolder}/SOS.retroicor.${AFNIINPUTPOSTFIX} \
     -b ${OutputFolder}/SOS.resp.${AFNIINPUTPOSTFIX} \
     -c ${MaskfMRI}.${AFNIINPUTPOSTFIX} \
-    -expr "(a-b)/a*step(c)/4*${tdim}" \
-    -prefix ${OutputFolder}/Fmap.resp.${AFNIINPUTPOSTFIX} 
+    -expr "(b-a)/b*step(c)/4*${doffull}" \
+    -prefix ${OutputFolder}/Fmap.card.${AFNIINPUTPOSTFIX} \
+    -overwrite
 
 # stat info embeded
 3drefit -fbuc           ${OutputFolder}/Fmap.ard.${AFNIINPUTPOSTFIX} 
 3drefit -sublabel   0   Card_Fstst ${OutputFolder}/Fmap.card.${AFNIINPUTPOSTFIX} 
-3drefit -substatpar 0   fift 4 $tdim ${OutputFolder}/Fmap.card.${AFNIINPUTPOSTFIX} 
+3drefit -substatpar 0   fift 4 $doffull ${OutputFolder}/Fmap.card.${AFNIINPUTPOSTFIX} 
 3drefit -fbuc           ${OutputFolder}/Fmap.resp.${AFNIINPUTPOSTFIX} 
 3drefit -sublabel   0   Card_Fstst ${OutputFolder}/Fmap.resp.${AFNIINPUTPOSTFIX} 
-3drefit -substatpar 0   fift 4 $tdim ${OutputFolder}/Fmap.resp.${AFNIINPUTPOSTFIX} 
+3drefit -substatpar 0   fift 4 $doffull ${OutputFolder}/Fmap.resp.${AFNIINPUTPOSTFIX} 
 
 # find fvalue with p < 0.001
-fthr=`p2dsetstat -inset ${OutputFolder}/Fmap.card.${AFNIINPUTPOSTFIX} -pval 0.001 -2sided -quiet`
+fthr=`p2dsetstat -inset ${OutputFolder}/Fmap.card.${AFNIINPUTPOSTFIX} -pval 0.01 -2sided -quiet`
 
 # find fmap ROI
 3dcalc -a ${OutputFolder}/Fmap.card.${AFNIINPUTPOSTFIX} \
 -expr "step(a-$fthr)" \
--prefix ${OutputFolder}/Fmap.card.roi.${AFNIINPUTPOSTFIX}
+-prefix ${OutputFolder}/Fmap.card.roi.${AFNIINPUTPOSTFIX} \
+-overwrite
 
 3dcalc -a ${OutputFolder}/Fmap.resp.${AFNIINPUTPOSTFIX} \
 -expr "step(a-$fthr)" \
--prefix ${OutputFolder}/Fmap.resp.roi.${AFNIINPUTPOSTFIX}
+-prefix ${OutputFolder}/Fmap.resp.roi.${AFNIINPUTPOSTFIX} \
+-overwrite
 
 # find resp function in high fmap and generate beta map using matlab 
 

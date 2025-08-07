@@ -2,8 +2,8 @@ function readHCPPhysioLog(pfile,tfile,odir,tr,tdim,zdim,smsfactor)
 % read X_log.txt file from linked physio data and store it to AFNI format
 pp=load(pfile);
 trig=pp(:,1);
-card=pp(:,2);
-resp=pp(:,3);
+resp=pp(:,2);
+card=pp(:,3);
 
 % read
 tshift=load(tfile);
