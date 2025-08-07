@@ -28,6 +28,10 @@ get_batch_options() {
                 command_line_specified_local=${argument#*=}
                 index=$(( index + 1 ))
                 ;;
+            --task=*)
+                command_line_specified_task=${argument#*=}
+                index=$(( index + 1 ))
+                ;;
             --runlocal)
                 command_line_specified_run_local="TRUE"
                 index=$(( index + 1 ))
@@ -153,12 +157,15 @@ fi
 SCRIPT_NAME=`basename "$0"`
 echo $SCRIPT_NAME
 
-TaskList=()
-TaskList+=(rfMRI_REST1_RL)
-#TaskList+=(rfMRI_REST1_LR)
-#TaskList+=(rfMRI_REST2_RL)
-#TaskList+=(rfMRI_REST2_LR)
-
+if [ -n "${command_line_specified_task}" ]; then
+    export TaskList=("${command_line_specified_local}")
+else
+    TaskList=()
+    TaskList+=(rfMRI_REST1_RL)
+    TaskList+=(rfMRI_REST1_LR)
+    #TaskList+=(rfMRI_REST2_RL)
+    #TaskList+=(rfMRI_REST2_LR)
+fi
 
 # Start or launch pipeline processing for each subject
 for Subject in $Subjlist ; do
