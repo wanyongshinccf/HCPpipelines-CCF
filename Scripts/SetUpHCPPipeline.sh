@@ -83,6 +83,8 @@ export SLOMOCODIR=${HCPCCFPIPEDIR}/fMRIVolume/scripts/SLOMOCO
 
 # add workbench in a path
 export PATH="$CARET7DIR:$PATH"
+# add gradient_unwarp.py in a path
+export PATH="$GRADUNWARPDIR:$PATH"
 
 # ---------------------------------------------------------
 # Users probably won't need to edit anything below this line
