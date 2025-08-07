@@ -902,7 +902,6 @@ ${RUN} "$SLOMOCODIR"/slomoco.sh                                         \
     --oiwarp=${AtlasSpaceFolder}/xfms/${Standard2OutputfMRITransform}   \
     --gdfield=${fMRIFolder}/${NameOffMRI}_gdc_warp                      \
     --sliacqtimefile=${SLIACQTIME} 
-fi
 
 # SLOMOCO regress-out here
 echo "SLOMOCO: Regress out 13 vol-/sli-/voxel-regressors."
