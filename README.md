@@ -1,2 +1,2 @@
-# HCPPipelines-CCF
+# HCPpipelines-CCF
 HCP pipelines to run PESTICA/SLOMOCO
