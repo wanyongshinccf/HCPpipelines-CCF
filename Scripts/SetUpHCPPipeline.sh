@@ -10,7 +10,7 @@ echo "Your local machine name is $localHCPhorse"
 if [[ ${localHCPhorse} == "macws" ]]; then
     export HCPPIPEDIR="/Volumes/MacExtDrive/SW/release/HCPpipelines-5.0.0" 
 elif [[ ${localHCPhorse} == "linux" ]]; then
-    export HCPPIPEDIR="/Volumes/MacExtDrive/SW/release/HCPpipelines-5.0.0" 
+    export HCPPIPEDIR="/mnt/hcp01/SW/HCPpipelines-5.0.0" 
 elif [[ ${localHCPhorse} == "ideapc" ]]; then
     export HCPPIPEDIR="/home/shinw/SW/HCPpipelines-5.0.0/" 
 fi
@@ -37,16 +37,16 @@ if [ ${localHCPhorse} == "macws" ]; then
     # gradient unwaring
     export GRADUNWARPDIR=/Users/wanyongshin/fsl/bin
 elif [ ${localHCPhorse} == "linux" ]; then
-    export HCPCCFPIPEDIR="/Users/wanyongshin/SW/git/HCPpipelines-CCF" # (CCF, W.S)
+    export HCPCCFPIPEDIR="/mnt/hcp01/SW/HCPpipelines-CCF" # (CCF, W.S)
     ## Edit this section: set up other environment variables
     export MSMBINDIR="${HCPPIPEDIR}/tools"
     #export MATLAB_COMPILER_RUNTIME=/export/matlab/MCR/R2022b
     export MATLAB_COMPILER_RUNTIME=/tools/matlab_r2022b/mcr/
     # export FSL_FIXDIR=/usr/local/fix # only needed for legacy fix
     # If a suitable version of wb_command is on your $PATH, CARET7DIR can be blank
-    export CARET7DIR="/Volume/ServerApp/workbench-master_v2.1.0/bin_rh_linux64" # W.S
+    export CARET7DIR="/mnt/hcp01/SW/workbench-master_v2.1.0/bin_rh_linux64" # W.S
     export HCPCIFTIRWDIR="$HCPPIPEDIR"/global/matlab/cifti-matlab
-    export GRADUNWARPDIR=/Users/wanyongshin/fsl/bin
+    export GRADUNWARPDIR=/home/wyshin/.local/bin
 elif [ ${localHCPhorse} == "ideapc" ]; then
     export HCPCCFPIPEDIR="/home/shinw/SW/HCPpipelines-CCF" # (CCF, W.S)
     ## Edit this section: set up other environment variables
