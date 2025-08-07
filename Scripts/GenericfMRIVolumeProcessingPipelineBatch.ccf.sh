@@ -57,7 +57,7 @@ if [[ ${localHCPhorse} == "macws" ]]; then
     Subjlist="100206" #Space delimited list of subject IDs
     EnvironmentScriptDir="/Users/wanyongshin/SW/git/HCPpipelines-CCF/Scripts"
 elif [[ ${localHCPhorse} == "linux" ]]; then
-    StudyFolder="/mnt/hcp01/WU_MINN" #Location of Subject folders (named by subjectID) #W.S
+    StudyFolder="/mnt/hcp01/WU_MINN_HCP" #Location of Subject folders (named by subjectID) #W.S
     Subjlist="100206" #Space delimited list of subject IDs
     EnvironmentScriptDir="/mnt/hcp01/SW/HCPpipelines-CCF/Scripts"
 elif [[ ${localHCPhorse} == "ideapc" ]]; then
