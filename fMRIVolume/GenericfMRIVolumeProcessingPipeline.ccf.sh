@@ -725,10 +725,7 @@ if [ $DistortionCorrection = "NONE" ] ; then
         fi
     fi
 fi
-SKIPWS=1
-if [ $SKIPWS -gt 0 ]; then
-echo SKIP DAMMMM
-else
+
 #Gradient Distortion Correction of fMRI
 log_Msg "Gradient Distortion Correction of fMRI"
 
@@ -766,7 +763,7 @@ else
     ${RUN} ${FSLDIR}/bin/fslroi "$fMRIFolder"/"$NameOffMRI"_gdc_warp "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian 0 1
     ${RUN} ${FSLDIR}/bin/fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian -mul 0 -add 1 "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian
 fi 
-fi # W.S
+
 #Split echos
 if [[ ${nEcho} -gt 1 ]]; then
     log_Msg "Splitting echo(s)"
@@ -791,10 +788,7 @@ else
     tcsEchoesGdc[0]="${NameOffMRI}_gdc"
     sctEchoesGdc[0]="${ScoutName}_gdc"
 fi
-SKIPWS=1
-if [ $SKIPWS -gt 0 ]; then
-echo SKIP DAMMMM
-else
+
 # motion correction 
 log_Msg "mkdir -p ${fMRIFolder}/MotionCorrection"
 mkdir -p "$fMRIFolder"/MotionCorrection
@@ -871,7 +865,7 @@ else
         ${FSLDIR}/bin/imcp ${T1wFolder}/xfms/${fMRIReference}2str ${T1wFolder}/xfms/${fMRI2strOutputTransform}
     fi
 fi
-fi #W.S
+
 PhysioLogFile=$SubjectFolder/unprocessed/3T/"$NameOffMRI"/LINKED_DATA/PHYSIO/"$Subject"_3T_"$NameOffMRI"_Physio_log.txt
 PhysioLogFileName="PhysioLog.txt"
 if [ -e $PhysioLogFile ]; then
@@ -890,10 +884,7 @@ else
     echo "Warnning: $PhysioLogFile does not exist."
     runPESTICA="true"
 fi
-SKIPWS=1
-if [ $SKIPWS -gt 0 ]; then
-echo SKIP DAMMMM
-else
+
 log_Msg "mkdir -p ${fMRIFolder}/SLOMOCO"
 mkdir -p ${fMRIFolder}/SLOMOCO
 ${RUN} "$SLOMOCODIR"/slomoco.sh                                         \
@@ -911,11 +902,11 @@ ${RUN} "$SLOMOCODIR"/slomoco.sh                                         \
     --oiwarp=${AtlasSpaceFolder}/xfms/${Standard2OutputfMRITransform}   \
     --gdfield=${fMRIFolder}/${NameOffMRI}_gdc_warp                      \
     --sliacqtimefile=${SLIACQTIME} 
-fi # W.S
+
 # SLOMOCO regress-out here
 echo "SLOMOCO: Regress out 13 vol-/sli-/voxel-regressors."
 if [ -e $PhysioFile ]; then
-    PhysioStr="--phyregressor="$fMRIFolder"/Physio/RetroTS.PMU.slibase.1D"
+    PhysioStr="--phyregressor="$fMRIFolder"/Physio/RetroTS.PMU.slibase.1D "
 else
     PhysioStr=" "
 fi
