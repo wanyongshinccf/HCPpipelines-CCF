@@ -128,6 +128,8 @@ opts_AddOptional '--echoTE' 'echoTE' '@ delimited list of numbers' "TE for each 
 
 opts_AddOptional '--matlab-run-mode' 'MatlabMode' '0 (compiled), 1 (interpreted), or 2 (Octave)' "defaults to $g_matlab_default_mode" "$g_matlab_default_mode"
 
+opts_AddOptional '--step' 'step' 'all, dc, slomoco"  "defaults to all"
+
 # -------- "LegacyStyleData" MODE OPTIONS --------
 
 #  Use --processing-mode-info to see important additional information and warnings about the use of 
@@ -626,7 +628,9 @@ fi
 #  End Compliance check
 # ------------------------------------------------------------------------------
 
-
+if [ ! -z ${step} ]; then
+    step="all"
+fi
 ########################################## DO WORK ########################################## 
 
 T1wFolder="$Path"/"$Subject"/"$T1wFolder"
@@ -728,7 +732,7 @@ fi
 
 #Gradient Distortion Correction of fMRI
 log_Msg "Gradient Distortion Correction of fMRI"
-
+if [[ "$step" == "all" || "$step" == "gc" ] ; then
 if [ ! $GradientDistortionCoeffs = "NONE" ] ; then
     log_Msg "mkdir -p ${fMRIFolder}/GradientDistortionUnwarp"
     mkdir -p "$fMRIFolder"/GradientDistortionUnwarp
@@ -763,6 +767,9 @@ else
     ${RUN} ${FSLDIR}/bin/fslroi "$fMRIFolder"/"$NameOffMRI"_gdc_warp "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian 0 1
     ${RUN} ${FSLDIR}/bin/fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian -mul 0 -add 1 "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian
 fi 
+else
+    echo "SKIP: Distortion correction"
+fi
 
 #Split echos
 if [[ ${nEcho} -gt 1 ]]; then
@@ -789,6 +796,7 @@ else
     sctEchoesGdc[0]="${ScoutName}_gdc"
 fi
 
+if [[ "$step" == "all" || "$step" == "mc" ] ; then
 # motion correction 
 log_Msg "mkdir -p ${fMRIFolder}/MotionCorrection"
 mkdir -p "$fMRIFolder"/MotionCorrection
@@ -802,11 +810,15 @@ ${RUN} "$PipelineScripts"/MotionCorrection.sh \
     "$MotionMatrixPrefix" \
     "$MotionCorrectionType" \
     "$fMRIReferenceReg" 
+else
+    echo "SKIP: motion correction"
+fi
 
 #EPI Distortion Correction and EPI to T1w Registration
 DCFolderName=DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased
 DCFolder=${fMRIFolder}/${DCFolderName}
 
+if [[ "$step" == "all" || "$step" == "dc" ] ; then
 if [ $fMRIReference = "NONE" ] ; then
     log_Msg "EPI Distortion Correction and EPI to T1w Registration"
 
@@ -865,7 +877,11 @@ else
         ${FSLDIR}/bin/imcp ${T1wFolder}/xfms/${fMRIReference}2str ${T1wFolder}/xfms/${fMRI2strOutputTransform}
     fi
 fi
+else
+    echo "SKIP: distortion correction"
+fi
 
+if [[ "$step" == "all" || "$step" == "pc" ] ; then
 PhysioLogFile=$SubjectFolder/unprocessed/3T/"$NameOffMRI"/LINKED_DATA/PHYSIO/"$Subject"_3T_"$NameOffMRI"_Physio_log.txt
 PhysioLogFileName="PhysioLog.txt"
 if [ -e $PhysioLogFile ]; then
@@ -884,7 +900,11 @@ else
     echo "Warnning: $PhysioLogFile does not exist."
     runPESTICA="true"
 fi
+else
+    echo "SKIP: prep physiologoic correction"
+fi
 
+if [[ "$step" == "all" || "$step" == "slomoco" ] ; then
 log_Msg "mkdir -p ${fMRIFolder}/SLOMOCO"
 mkdir -p ${fMRIFolder}/SLOMOCO
 ${RUN} "$SLOMOCODIR"/slomoco.sh                                         \
@@ -902,7 +922,11 @@ ${RUN} "$SLOMOCODIR"/slomoco.sh                                         \
     --oiwarp=${AtlasSpaceFolder}/xfms/${Standard2OutputfMRITransform}   \
     --gdfield=${fMRIFolder}/${NameOffMRI}_gdc_warp                      \
     --sliacqtimefile=${SLIACQTIME} 
+else
+    echo "SKIP: SLOMOCO"
+fi
 
+if [[ "$step" == "all" || "$step" == "reg" ] ; then
 # SLOMOCO regress-out here
 echo "SLOMOCO: Regress out 13 vol-/sli-/voxel-regressors."
 if [ -e $PhysioFile ]; then
@@ -919,7 +943,11 @@ $RUN "${HCPCCFPIPEDIR_fMRIVol}"/RegressOut.sh                           \
     --sliregressor="$fMRIFolder"/SLOMOCO/slimopa.1D                     \
     --voxregressor="$fMRIFolder"/SLOMOCO/epi_gdc_pv                     \
     $PhysioStr
+else
+    echo "SKIP: SLOMOCO regress-out"
+fi
 
+if [[ "$step" == "all" || "$step" == "postresample" ] ; then 
 # Post Resampling for SLOMOCO, instead of One Step Resampling
 log_Msg "Post Step Resampling"
 log_Msg "mkdir -p ${fMRIFolder}/PostStepResampling_SLOMOCO"
@@ -956,6 +984,10 @@ done
 wb_command -volume-merge ${fMRIFolder}/${NameOffMRI}_slomoco_nonlin.nii.gz ${tscArgs} # reconcatenate resampled outputs
 ${FSLDIR}/bin/immv "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_slomoco_nonlin_mask.nii.gz" "${fMRIFolder}/${NameOffMRI}_slomoco_nonlin_mask.nii.gz"
 wb_command -volume-merge ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin.nii.gz ${sctArgs}
+
+else
+    echo "SKIP: PostStepResampling_SLOMOCO"
+fi
 
 log_Msg "mkdir -p ${ResultsFolder}"
 mkdir -p ${ResultsFolder}
@@ -1006,6 +1038,7 @@ then
     fi
 fi
 
+if [[ "$step" == "all" || "$step" == "ic" ] ; then
 #Intensity Normalization and Bias Removal
 log_Msg "Intensity Normalization and Bias Removal"
 ${RUN} ${PipelineScripts}/IntensityNormalization.sh \
@@ -1059,6 +1092,9 @@ if [[ ${nEcho} -gt 1 ]]; then
             echo
             ;;
     esac
+fi
+else
+    echo "SKIP: Intensity correction"
 fi
 
 #Copy selected files to ResultsFolder
