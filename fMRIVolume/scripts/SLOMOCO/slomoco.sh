@@ -53,36 +53,42 @@ verbose_echo "  "
 verbose_red_echo " ===> Running OneStepResampling_SLOMOCO"
 verbose_echo " "
 verbose_echo " Using parameters ..."
-verbose_echo "         --fmrifolder: ${fMRIFolder}"
 verbose_echo "         --workingdir: ${SLOMOCOFolder}"
+verbose_echo "           --fmriname: ${NameOffMRI}"
 verbose_echo "             --infmri: ${InputfMRI}"
 verbose_echo "          --infmrigdc: ${InputfMRIgdc}"
 verbose_echo "            --outfmri: ${OutputfMRI}"
 verbose_echo "            --scoutin: ${ScoutInput}"
 verbose_echo "         --scoutgdcin: ${ScoutInputgdc}"
-verbose_echo "--freesurferbrainmask: ${FreeSurferBrainMask}"
+verbose_echo "    --T1acpcbrainmask: ${T1acpcBrainMask}"
 verbose_echo "              --owarp: ${OutputTransform}"
-verbose_echo "             --oiwarp: ${OutputInvTransform}"
 verbose_echo "       --motionmatdir: ${MotionMatrixFolder}"
 verbose_echo "    --motionmatprefix: ${MotionMatrixPrefix}"
 verbose_echo "            --gdfield: ${GradientDistortionField}"
+verbose_echo "         --fmrirefreg: ${$fMRIReferenceReg}"
 verbose_echo "     --sliacqtimefile: ${SliAcqTimeFile}"
 verbose_echo " "
 
 
 TESTWS=0
 if [ $TESTWS -gt 0 ]; then
-fMRIFolder=/mnt/hcp01/WU_MINN_HCP/100206/rfMRI_REST1_RL
+fMRIFolder=/mnt/hcp01/WU_MINN_HCP/103010/rfMRI_REST1_RL
+T1wFolder=/mnt/hcp01/WU_MINN_HCP/103010/T1w
+
+NameOffMRI=rfMRI_REST1_RL
 SLOMOCOFolder="$fMRIFolder"/SLOMOCO 
 InputfMRI=$fMRIFolder/rfMRI_REST1_RL_orig
 InputfMRIgdc=$fMRIFolder/rfMRI_REST1_RL_gdc
 OutfMRI=$fMRIFolder/rfMRI_REST1_RL_slomoco         
-ScoutInput=$fMRIFolder/Scout_gdc
-ScoutInput_mask=$fMRIFolder/Scout_gdc_mask
+ScoutInput=$fMRIFolder/Scout_orig
+ScoutInputgdc=$fMRIFolder/Scout_gdc
+T1acpcBrainMask=${T1wFolder}/brainmask_fs
+OutputTransform=${T1wFolder}/xfms/rfMRI_REST1_RL2str 
 MotionMatrixFolder=$fMRIFolder/MotionMatrices
-GradientDistortionField="$fMRIFolder"/rfMRI_REST1_RL_gdc_warp         
-VolumeMotion1D="$fMRIFolder"/MotionCorrection/rfMRI_REST1_RL_mc.par          
-SliAcqTimeFile=/mnt/hcp01/SW/HCPpipeline-CCF/SliceAcqTime_3T_TR720ms.txt
+GradientDistortionField="$fMRIFolder"/rfMRI_REST1_RL_gdc_warp  
+fMRIReferenceReg="linear"       
+#VolumeMotion1D="$fMRIFolder"/MotionCorrection/rfMRI_REST1_RL_mc.par          
+SliAcqTimeFile=/mnt/hcp01/SW/HCPpipelines-CCF/global/config/SliceAcqTime_3T_TR720ms.txt
 fi
 
 echo " "
@@ -98,6 +104,9 @@ echo " " >> $SLOMOCOFolder/log.txt
 InplaneMotinFolder="$SLOMOCOFolder/inplane"
 OutofPlaneMotionFolder="$SLOMOCOFolder/outofplane"
 PartialVolumeFolder="$SLOMOCOFolder/pv"
+
+# define variable
+fMRImask=$SLOMOCOFOlder/"${NameOffMRI}"_mask
 
 # read tfile and calculate SMS factor  
 SMSfactor=0
@@ -122,21 +131,23 @@ elif [ $SMSfactor != "8" ] ; then
     echo "Warning: SMS factor in 3T HCP is expected to be 8."
 fi
 
-# Generate Scout_mask
-ScoutInputName=`basename ${ScoutInput}`
-ScoutInput_mask=$SLOMOCOFolder/${ScoutInputName}_mask
+# Snippped from OneStepSampling.sh
+# needed for good mask in EPI space.
+# Create a combined warp if nonlinear registration to reference is used
+
+# Generate fMRI_mask (not scout mask) Just use Scout image to save time
+3dcalc -a 
+OutputInvTransform=$SLOMOCOFolder/str2$NameOffMRI
+invwarp -w ${OutputTransform}   \
+    -o ${OutputInvTransform}    \
+    -r ${ScoutInput}
+
 applywarp --rel --interp=nn \
-    -i ${FreeSurferBrainMask} \
+    -i ${T1acpcBrainMask} \
     -r ${ScoutInput} \
     -w ${OutputInvTransform} \
-    -o ${ScoutInput_mask}
-ScoutInputgdcName=`basename ${ScoutInputgdc}`
-ScoutInputgdc_mask=$SLOMOCOFolder/${ScoutInputgdcName}_mask
-applywarp --rel --interp=nn \
-    -i ${FreeSurferBrainMask} \
-    -r ${ScoutInputgdc} \
-    -w ${OutputInvTransform} \
-    -o ${ScoutInputgdc_mask}
+    -o ${fMRImask}
+
 
 # inplane motion correction
 # HCP version of run_correction_vol_slicemocoxy_afni.tcsh

@@ -888,19 +888,19 @@ fi
 log_Msg "mkdir -p ${fMRIFolder}/SLOMOCO"
 mkdir -p ${fMRIFolder}/SLOMOCO
 ${RUN} "$SLOMOCODIR"/slomoco.sh                                         \
-    --fmrifolder=${fMRIFolder}                                          \
     --workingdir="$fMRIFolder"/SLOMOCO                                  \
+    --fmriname=${NameOffMRI}                                    \ 
     --infmri="$fMRIFolder"/"${tcsEchoesOrig[0]}"                        \
     --infmrigdc="$fMRIFolder/${tcsEchoesGdc[0]}"                        \
     --outfmri="$fMRIFolder"/"${tcsEchoesOrig[0]}"_gdc_mocoxy            \
-    --scoutin="${fMRIFolder}/${sctEchoesOrig[0]}"                       \
-    --scoutgdcin="${fMRIFolder}/${sctEchoesGdc[0]}"                     \
-    --motionmatdir="$fMRIFolder"/"$MotionMatrixFolder"                  \
-    --motionmatprefix="MAT_"                                            \
-    --freesurferbrainmask=${AtlasSpaceFolder}/${FreeSurferBrainMask}    \
-    --owarp=${AtlasSpaceFolder}/xfms/${OutputfMRI2StandardTransform}    \
-    --oiwarp=${AtlasSpaceFolder}/xfms/${Standard2OutputfMRITransform}   \
+    --scoutin="${fMRIFolder}/${sctEchoesOrig[0]}"_orig                  \
+    --scoutgdcin="${fMRIFolder}/${sctEchoesGdc[0]}"_gdc                 \
+    --motionmatdir="$fMRIFolder"/"$MotionMatrixFolder"          \
+    --motionmatprefix="MAT_"                                    \
+    --owarp=${T1wFolder}/xfms/${fMRI2strOutputTransform}        \
+    --T1acpcbrainmask=${T1wFolder}/${FreeSurferBrainMask}       \
     --gdfield=${fMRIFolder}/${NameOffMRI}_gdc_warp                      \
+    --fmrirefreg="$fMRIReferenceReg"                                    \
     --sliacqtimefile=${SLIACQTIME} 
 
 # SLOMOCO regress-out here
