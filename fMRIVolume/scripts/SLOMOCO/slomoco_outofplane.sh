@@ -41,7 +41,7 @@ zdim=`fslval $input dim3`
 tdim=`fslval $input dim4`
 let "zmbdim=$zdim/$SMSfactor"
 
-# temporal mean
+# temporal mean; reference from moco mean or scout?
 fslmaths $input -Tmean ${outofplanedir}/ref
 
 # concatenate
@@ -61,7 +61,7 @@ fslsplit ${input} ${outofplanedir}/epislomoco_z -z
 # generates epi z t-series
 for ((zmb = 0 ; zmb < $zmbdim ; zmb++ ));
 do
-    echo "Estimating out-of-plane motion at $zmb of $zmbdim slices."
+    echo "Estimating out-of-plane motion at $zmb of $zmbdim time-series slice."
     str_conca=""
     for ((z = 0 ; z < $zdim ; z++ )); 
     do

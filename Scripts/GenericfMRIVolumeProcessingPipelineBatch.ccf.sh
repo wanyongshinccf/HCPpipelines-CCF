@@ -32,6 +32,10 @@ get_batch_options() {
                 command_line_specified_task=${argument#*=}
                 index=$(( index + 1 ))
                 ;;
+            --step=*)
+                command_line_specified_step=${argument#*=}
+                index=$(( index + 1 ))
+                ;;
             --runlocal)
                 command_line_specified_run_local="TRUE"
                 index=$(( index + 1 ))
@@ -165,6 +169,11 @@ else
     TaskList+=(rfMRI_REST1_LR)
     #TaskList+=(rfMRI_REST2_RL)
     #TaskList+=(rfMRI_REST2_LR)
+fi
+
+step="all"
+if [ -n "${command_line_specified_step}" ]; then
+    step=${command_line_specified_step}
 fi
 
 # Start or launch pipeline processing for each subject
@@ -303,7 +312,8 @@ for Subject in $Subjlist ; do
             --gdcoeffs="$GradientDistortionCoeffs" \
             --topupconfig="$TopUpConfig" \
             --biascorrection="$BiasCorrection" \
-            --mctype="$MCType"
+            --mctype="$MCType" \
+            --step="$step"
 
         # The following lines are used for interactive debugging to set the positional parameters: $1 $2 $3 ...
 
@@ -325,7 +335,8 @@ for Subject in $Subjlist ; do
             --gdcoeffs=$GradientDistortionCoeffs \
             --topupconfig=$TopUpConfig \
             --biascorrection=$BiasCorrection \
-            --mctype=$MCType"
+            --mctype=$MCType" \
+            --step="$step"
 
         echo ". ${EnvironmentScript}"
 

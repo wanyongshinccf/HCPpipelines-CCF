@@ -16,7 +16,7 @@ opts_SetScriptDescription "Run SLOMOCO for HCP pipeline"
 
 opts_AddMandatory '--workingdir' 'SLOMOCOFolder' 'path' "working dir"
 
-opts_AddMandatory '--fmrifolder' 'fMRIFolder' 'path' "fMRI processing folder"
+opts_AddMandatory '--fmriname' 'NameOffMRI' 'string' "fMRI study name"
 
 opts_AddMandatory '--infmri' 'InputfMRI' 'file' "input fMRI time series (NIFTI)"
 
@@ -26,13 +26,9 @@ opts_AddMandatory '--outfmri' 'OutputfMRI' 'string' "'name (prefix) to use for t
 
 opts_AddMandatory '--scoutin' 'ScoutInput' 'volume' "Used as the target"
 
-opts_AddMandatory '--scoutgdcin' 'ScoutInputgdc' 'gradient' "input scout gradient nonlinearity distortion corrected image (EPI pre-sat)"
+opts_AddMandatory '--T1acpcbrainmask' 'T1acpcBrainMask' 'mask' "input FreeSurfer brain mask or nifti format in T1w space"
 
-opts_AddMandatory '--freesurferbrainmask' 'FreeSurferBrainMask' 'mask' "input FreeSurfer brain mask or nifti format in atlas (MNI152) space"
-
-opts_AddMandatory '--owarp' 'OutputTransform' 'path' "output fMRI to MNI warp"
-
-opts_AddMandatory '--oiwarp' 'OutputInvTransform' 'path' "output MNI to fMRI warp"
+opts_AddMandatory '--owarp' 'fMRI2strOutputTransform' 'path' "output fMRI to T1w"
 
 opts_AddMandatory '--motionmatdir' 'MotionMatrixFolder' 'path' "input motion correcton matrix directory"
 
@@ -50,7 +46,7 @@ opts_ShowValues
 # --- Report arguments
 
 verbose_echo "  "
-verbose_red_echo " ===> Running OneStepResampling_SLOMOCO"
+verbose_red_echo " ===> Running SLOMOCO"
 verbose_echo " "
 verbose_echo " Using parameters ..."
 verbose_echo "         --workingdir: ${SLOMOCOFolder}"
@@ -59,35 +55,29 @@ verbose_echo "             --infmri: ${InputfMRI}"
 verbose_echo "          --infmrigdc: ${InputfMRIgdc}"
 verbose_echo "            --outfmri: ${OutputfMRI}"
 verbose_echo "            --scoutin: ${ScoutInput}"
-verbose_echo "         --scoutgdcin: ${ScoutInputgdc}"
-verbose_echo "    --T1acpcbrainmask: ${T1acpcBrainMask}"
-verbose_echo "              --owarp: ${OutputTransform}"
 verbose_echo "       --motionmatdir: ${MotionMatrixFolder}"
 verbose_echo "    --motionmatprefix: ${MotionMatrixPrefix}"
+verbose_echo "    --T1acpcbrainmask: ${T1acpcBrainMask}"
+verbose_echo "              --owarp: ${fMRI2strOutputTransform}"
 verbose_echo "            --gdfield: ${GradientDistortionField}"
-verbose_echo "         --fmrirefreg: ${$fMRIReferenceReg}"
 verbose_echo "     --sliacqtimefile: ${SliAcqTimeFile}"
 verbose_echo " "
-
 
 TESTWS=0
 if [ $TESTWS -gt 0 ]; then
 fMRIFolder=/mnt/hcp01/WU_MINN_HCP/103010/rfMRI_REST1_RL
 T1wFolder=/mnt/hcp01/WU_MINN_HCP/103010/T1w
-
-NameOffMRI=rfMRI_REST1_RL
 SLOMOCOFolder="$fMRIFolder"/SLOMOCO 
+NameOffMRI=rfMRI_REST1_RL
 InputfMRI=$fMRIFolder/rfMRI_REST1_RL_orig
 InputfMRIgdc=$fMRIFolder/rfMRI_REST1_RL_gdc
 OutfMRI=$fMRIFolder/rfMRI_REST1_RL_slomoco         
 ScoutInput=$fMRIFolder/Scout_orig
 ScoutInputgdc=$fMRIFolder/Scout_gdc
 T1acpcBrainMask=${T1wFolder}/brainmask_fs
-OutputTransform=${T1wFolder}/xfms/rfMRI_REST1_RL2str 
+fMRI2strOutputTransform=${T1wFolder}/xfms/rfMRI_REST1_RL2str
 MotionMatrixFolder=$fMRIFolder/MotionMatrices
-GradientDistortionField="$fMRIFolder"/rfMRI_REST1_RL_gdc_warp  
-fMRIReferenceReg="linear"       
-#VolumeMotion1D="$fMRIFolder"/MotionCorrection/rfMRI_REST1_RL_mc.par          
+GradientDistortionField="$fMRIFolder"/rfMRI_REST1_RL_gdc_warp                
 SliAcqTimeFile=/mnt/hcp01/SW/HCPpipelines-CCF/global/config/SliceAcqTime_3T_TR720ms.txt
 fi
 
@@ -106,7 +96,8 @@ OutofPlaneMotionFolder="$SLOMOCOFolder/outofplane"
 PartialVolumeFolder="$SLOMOCOFolder/pv"
 
 # define variable
-fMRImask=$SLOMOCOFOlder/"${NameOffMRI}"_mask
+InputfMRI_mask=$SLOMOCOFolder/"${NameOffMRI}"_mask
+str2fMRIOutputTransform=$SLOMOCOFolder/str2"${NameOffMRI}"
 
 # read tfile and calculate SMS factor  
 SMSfactor=0
@@ -136,18 +127,15 @@ fi
 # Create a combined warp if nonlinear registration to reference is used
 
 # Generate fMRI_mask (not scout mask) Just use Scout image to save time
-3dcalc -a 
-OutputInvTransform=$SLOMOCOFolder/str2$NameOffMRI
-invwarp -w ${OutputTransform}   \
-    -o ${OutputInvTransform}    \
+${FSLDIR}/bin/invwarp -w ${fMRI2strOutputTransform}   \
+    -o ${str2fMRIOutputTransform}    \
     -r ${ScoutInput}
 
-applywarp --rel --interp=nn \
+${FSLDIR}/bin/applywarp --rel --interp=nn \
     -i ${T1acpcBrainMask} \
     -r ${ScoutInput} \
-    -w ${OutputInvTransform} \
-    -o ${fMRImask}
-
+    -w ${str2fMRIOutputTransform} \
+    -o ${InputfMRI_mask}
 
 # inplane motion correction
 # HCP version of run_correction_vol_slicemocoxy_afni.tcsh
@@ -155,11 +143,11 @@ echo "SLOMOCO STEP1: Inplane motion correction"
 echo "               x-/y-shift and z-rotation motion is corrected."
 $RUN "$SLOMOCODIR"/slomoco_inplane.sh    \
     ${InputfMRI}                         \
-    ${SLOMOCOFolder}/epi_mocoxy             \
-    ${ScoutInput}                           \
-    ${ScoutInput_mask}       \
-    ${MotionMatrixFolder}                   \
-    ${SMSfactor}                            \
+    ${SLOMOCOFolder}/epi_mocoxy          \
+    ${ScoutInput}                         \
+    ${InputfMRI_mask}                    \
+    ${MotionMatrixFolder}                \
+    ${SMSfactor}                         \
     ${InplaneMotinFolder}
 
 # out-of-plane motion estimation (NOT CORRECTION)
@@ -169,7 +157,7 @@ echo "               x-/y-rotation and z-shift motion is estimated."
 $RUN "$SLOMOCODIR"/slomoco_outofplane.sh    \
     ${SLOMOCOFolder}/epi_mocoxy             \
     ${ScoutInput}                           \
-    ${ScoutInput_mask}                      \
+    ${InputfMRI_mask}                      \
     ${MotionMatrixFolder}                   \
     ${SMSfactor}                            \
     ${OutofPlaneMotionFolder}
