@@ -42,7 +42,7 @@ tr=`fslval $input pixdim4`
 let "zmbdim=$zdim/$SMSfactor"
 
 # generate each volume of input
-# fslsplit $input ${inplanedir}/epivol  -t
+fslsplit $input ${inplanedir}/epivol  -t
 
 # generate the reference images at each TR
 str_tcombined=""
