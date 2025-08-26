@@ -171,6 +171,7 @@ else
     #TaskList+=(rfMRI_REST2_LR)
 fi
 
+# STEP could be (gdc moco reg prepphy slomoco regout resample result) 
 STEP=()
 if [ -n "${command_line_specified_step}" ]; then
     for s in "${command_line_specified_step[@]}" ; 

@@ -149,7 +149,7 @@ opts_AddOptional '--fmriref' 'fMRIReference' 'folder' "Specifies whether to use 
 
 opts_AddOptional '--fmrirefreg' 'fMRIReferenceReg' 'linear or nonlinear' "Specifies whether to compute and apply a nonlinear transform to align the inputfMRI to the reference fMRI, if one is specified using --fmriref. The nonlinear transform is computed using 'fnirt' following the motion correction using the mean motion corrected fMRI image." "linear"
 
-opts_AddOptional '--step' 'workstep' 'all, gdc, moco, reg, slomoco' "defaults to all" "all"
+opts_AddOptional '--step' 'workstep' 'all, gdc, moco, register, slomoco, regout, resample, result' "defaults to all" "all"
 
 # opts_AddOptional '--printcom' 'RUN' 'print-command' "DO NOT USE THIS! IT IS NOT IMPLEMENTED!"
 # Disable RUN
@@ -818,7 +818,7 @@ fi
 DCFolderName=DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased
 DCFolder=${fMRIFolder}/${DCFolderName}
 
-if [[ $workstep = "all" ||  $workstep = "reg" ]]; then
+if [[ $workstep = "all" ||  $workstep = "register" ]]; then
     if [ $fMRIReference = "NONE" ] ; then
         log_Msg "EPI Distortion Correction and EPI to T1w Registration"
 
