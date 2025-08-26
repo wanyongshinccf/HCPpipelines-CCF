@@ -175,7 +175,7 @@ fslmaths $InputfMRI -Tmean $WD/__rm.mean
 fslmaths $WD/__rm.mean -add $WD/errts.nii.gz $OutputfMRI
 
 # clean
-\rm -f  $WD/__rm.* # $WD/errts.* 
+\rm -f  $WD/__rm.* $WD/errts.* 
 
 echo "Finished: 13 vol-/sli-/vox-wise motion nuisance regressors & "
 echo "          polymonial detrending lines are regressed out."

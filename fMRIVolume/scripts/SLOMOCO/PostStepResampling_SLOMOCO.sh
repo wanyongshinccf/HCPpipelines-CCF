@@ -267,7 +267,14 @@ else
     FrameMergeSTRING=""
     FrameMergeSTRINGII=""
     for ((k=0; k < $NumFrames; k++)); do
-      echo -ne "Running slomoco_postsampling at volume $k \r"
+      let k_div10=$k/10
+      k_div10_track=0
+      if [ $k -eq 0 ]; then
+        echo -ne "Post-Resampling SLOMOCO at volume $k"
+      elif [ ${k_div10} -gt ${k_div10_track} ]; 
+        echo -ne "."
+        k_div10_track=${k_div10}
+      fi
 
       vnum=`${FSLDIR}/bin/zeropad $k 4`
 

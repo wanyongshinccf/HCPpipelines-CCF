@@ -729,9 +729,8 @@ if [ $DistortionCorrection = "NONE" ] ; then
 fi
 
 #Gradient Distortion Correction of fMRI
-log_Msg "Gradient Distortion Correction of fMRI"
-
 if [[ $workstep = "all" ||  $workstep = "gdc" ]]; then
+    log_Msg "Gradient Distortion Correction of fMRI"
     if [ ! $GradientDistortionCoeffs = "NONE" ] ; then
         log_Msg "mkdir -p ${fMRIFolder}/GradientDistortionUnwarp"
         mkdir -p "$fMRIFolder"/GradientDistortionUnwarp
@@ -796,9 +795,8 @@ else
 fi
 
 # motion correction 
-log_Msg "mkdir -p ${fMRIFolder}/MotionCorrection"
-
 if [[ $workstep = "all" ||  $workstep = "moco" ]]; then
+    log_Msg "mkdir -p ${fMRIFolder}/MotionCorrection"
     mkdir -p "$fMRIFolder"/MotionCorrection
     ${RUN} "$PipelineScripts"/MotionCorrection.sh \
         "$fMRIFolder"/MotionCorrection \

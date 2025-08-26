@@ -46,12 +46,13 @@ fslsplit $InputfMRIgdc ${PartialVolumeFolder}/vol  -t
 str_tcombined=""
 for ((t = 0 ; t < $tdim ; t++ )); 
 do 
+    let t_div10=$t/10
+    t_div10_track=0
     if [ $t -eq 0 ]; then
         echo -ne "Generating MOTSIM data and resampling back at volume $t"
-    elif [ $t -lt 4 ]; then
-        echo -ne $t
-    else
+    elif [ ${t_div10} -gt ${t_div10_track} ]; 
         echo -ne "."
+        t_div10_track=${t_div10}
     fi 
 
     vnum=`${FSLDIR}/bin/zeropad $t 4`

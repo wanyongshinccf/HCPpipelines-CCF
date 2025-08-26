@@ -48,8 +48,15 @@ fslsplit $input ${inplanedir}/epivol  -t
 str_tcombined=""
 for ((t = 0 ; t < $tdim ; t++ )); 
 do 
-    echo -ne "Running inplane motion correction at volume $t \r"
-
+    let t_div10=$t/10
+    t_div10_track=0
+    if [ $t -eq 0 ]; then
+        echo -ne "Running inplane motion correction at volume $t"
+    elif [ ${t_div10} -gt ${t_div10_track} ]; 
+        echo -ne "."
+        t_div10_track=${t_div10}
+    fi 
+    
     fmat=${MotionMatrixDir}/MAT_`printf %04d $t`
     convert_xfm -omat $inplanedir/bmat -inverse $fmat
     flirt                                           \
