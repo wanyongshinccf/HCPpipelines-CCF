@@ -300,6 +300,7 @@ for Subject in $Subjlist ; do
         fi
 
         for step in "${STEP[$]}"
+        do
             "${queuing_command[@]}" "$HCPCCFPIPEDIR"/fMRIVolume/GenericfMRIVolumeProcessingPipeline.ccf.sh \
             --path="$StudyFolder" \
             --subject="$Subject" \
