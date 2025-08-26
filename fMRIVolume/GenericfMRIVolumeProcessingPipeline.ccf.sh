@@ -1035,11 +1035,7 @@ if [[ $workstep = "all" ||  $workstep = "result" ]]; then
             fi
         fi
     fi
-else
-    echo "SKIP: Result "
-fi
 
-if [[ $workstep = "all" ||  $workstep = "norm" ]]; then
     #Intensity Normalization and Bias Removal
     log_Msg "Intensity Normalization and Bias Removal"
     ${RUN} ${PipelineScripts}/IntensityNormalization.sh \
@@ -1153,7 +1149,7 @@ if [[ $workstep = "all" ||  $workstep = "norm" ]]; then
         ${FSLDIR}/bin/imrm "${tcsEchoesMu[@]}"
     fi
 else
-    echo "SKIP: Intensity Normalization and Bias Removal"
+    echo "SKIP: Result, Intensity Normalization and Bias Removal"
 fi
 
 log_Msg "Completed!"
