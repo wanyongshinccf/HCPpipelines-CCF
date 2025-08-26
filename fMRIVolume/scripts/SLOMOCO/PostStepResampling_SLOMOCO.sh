@@ -356,10 +356,10 @@ ${FSLDIR}/bin/applywarp --rel --interp=trilinear -i ${WD}/gdc_dc_jacobian -r ${W
 cat ${fMRIFolder}/Movement_RelativeRMS.txt | awk '{ sum += $1} END { print sum / NR }' >> ${fMRIFolder}/Movement_RelativeRMS_mean.txt
 cat ${fMRIFolder}/Movement_AbsoluteRMS.txt | awk '{ sum += $1} END { print sum / NR }' >> ${fMRIFolder}/Movement_AbsoluteRMS_mean.txt
 
-verbose_green_echo "---> Finished OneStepResampling_SLOMOCO"
+verbose_green_echo "---> Finished PostStepResampling_SLOMOCO"
 
 echo " "
-echo "END: OneStepResampling_SLOMOCO"
+echo "END: PostStepResampling_SLOMOCO"
 echo " END: `date`" >> $WD/log.txt
 
 ########################################## QA STUFF ##########################################
