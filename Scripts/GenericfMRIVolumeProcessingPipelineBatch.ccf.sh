@@ -299,7 +299,7 @@ for Subject in $Subjlist ; do
             queuing_command=("$FSLDIR/bin/fsl_sub" -q "$QUEUE")
         fi
 
-        for step in "${STEP[$]}"
+        for step in "${STEP[@]}"
         do
             "${queuing_command[@]}" "$HCPCCFPIPEDIR"/fMRIVolume/GenericfMRIVolumeProcessingPipeline.ccf.sh \
             --path="$StudyFolder" \
