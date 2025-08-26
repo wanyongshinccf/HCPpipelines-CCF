@@ -267,6 +267,8 @@ else
     FrameMergeSTRING=""
     FrameMergeSTRINGII=""
     for ((k=0; k < $NumFrames; k++)); do
+      echo -ne "Running slomoco_postsampling at volume $k \r"
+
       vnum=`${FSLDIR}/bin/zeropad $k 4`
 
       # Add stuff for estimating RMS motion

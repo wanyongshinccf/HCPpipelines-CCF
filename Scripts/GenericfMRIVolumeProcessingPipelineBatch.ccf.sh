@@ -171,9 +171,13 @@ else
     #TaskList+=(rfMRI_REST2_LR)
 fi
 
-step="all"
+STEP=()
 if [ -n "${command_line_specified_step}" ]; then
-    step=${command_line_specified_step}
+    for s in "${command_line_specified_step[@]}" ; then
+        STEP+=($s)
+    done
+else
+    STEP="all"
 fi
 
 # Start or launch pipeline processing for each subject
@@ -293,7 +297,8 @@ for Subject in $Subjlist ; do
             queuing_command=("$FSLDIR/bin/fsl_sub" -q "$QUEUE")
         fi
 
-        "${queuing_command[@]}" "$HCPCCFPIPEDIR"/fMRIVolume/GenericfMRIVolumeProcessingPipeline.ccf.sh \
+        for step in "${STEP[$]}"
+            "${queuing_command[@]}" "$HCPCCFPIPEDIR"/fMRIVolume/GenericfMRIVolumeProcessingPipeline.ccf.sh \
             --path="$StudyFolder" \
             --subject="$Subject" \
             --fmriname="$fMRIName" \
@@ -315,9 +320,9 @@ for Subject in $Subjlist ; do
             --mctype="$MCType" \
             --step="$step"
 
-        # The following lines are used for interactive debugging to set the positional parameters: $1 $2 $3 ...
+            # The following lines are used for interactive debugging to set the positional parameters: $1 $2 $3 ...
 
-        echo "set -- --path=$StudyFolder \
+            echo "set -- --path=$StudyFolder \
             --subject=$Subject \
             --fmriname=$fMRIName \
             --fmritcs=$fMRITimeSeries \
@@ -338,7 +343,7 @@ for Subject in $Subjlist ; do
             --mctype=$MCType" \
             --step="$step"
 
-        echo ". ${EnvironmentScript}"
-
+            echo ". ${EnvironmentScript}"
+        done
     done
 done

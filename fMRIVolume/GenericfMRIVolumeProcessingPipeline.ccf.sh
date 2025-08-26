@@ -1153,7 +1153,7 @@ if [[ $workstep = "all" ||  $workstep = "norm" ]]; then
         ${FSLDIR}/bin/imrm "${tcsEchoesMu[@]}"
     fi
 else
-    eho "SKIP: Intensity Normalization and Bias Removal"
+    echo "SKIP: Intensity Normalization and Bias Removal"
 fi
 
 log_Msg "Completed!"

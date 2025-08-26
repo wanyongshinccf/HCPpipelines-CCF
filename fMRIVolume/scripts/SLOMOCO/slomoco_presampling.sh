@@ -50,7 +50,8 @@ ${FSLDIR}/bin/fslsplit ${InputfMRI} ${OneSamplingFolder}/prevols/vol -t
 FrameMergeSTRING=""
 FrameMergeSTRINGII=""
 for ((t=0; t < $tdim; t++)); do
-    echo running slomoco_presampling in $t volume
+    echo -ne "slomoco_presampling at volume $t \r"
+
     vnum=`${FSLDIR}/bin/zeropad $t 4`
 
     # Add stuff for estimating RMS motion
