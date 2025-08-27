@@ -51,7 +51,7 @@ do
     if [ $t -eq 0 ]; then
         echo -ne "Generating MOTSIM data and resampling back at volume $t"
     elif [ ${t_div10} -gt ${t_div10_track} ]; then
-        echo -ne "."
+        echo -ne ".${t}"
         t_div10_track=${t_div10}
     fi 
 
