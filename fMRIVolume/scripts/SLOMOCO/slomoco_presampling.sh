@@ -54,7 +54,7 @@ for ((t=0; t < $tdim; t++)); do
     t_div10_track=0
     if [ $t -eq 0 ]; then
         echo -ne "Pre-resampling SLOMOCO data at volume $t"
-    elif [ ${t_div10} -gt ${t_div10_track} ]; 
+    elif [ ${t_div10} -gt ${t_div10_track} ]; then
         echo -ne "."
         t_div10_track=${t_div10}
     fi 
