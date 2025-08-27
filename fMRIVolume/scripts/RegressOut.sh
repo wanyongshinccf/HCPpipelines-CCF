@@ -70,6 +70,7 @@ fi
 
 # Step 1; prepare volmot + polinomial detrending: Mendatory
 if [[ -n $VolumeMotion1D ]] ; then
+    echo "Volume Motion file is provided."
     1d_tool.py                          \
         -infile $VolumeMotion1D         \
         -demean                         \
@@ -92,6 +93,8 @@ if [[ -n $VolumeMotion1D ]] ; then
         -overwrite
     volregstr="-matrix $WD/volreg.1D "
 else
+    echo "Warning: Volume Motion file IS NOT provided."
+    
     3dDeconvolve                                                                        \
         -input  ${InputfMRI}.$AFNIINPUTPOSTFIX                                          \
         -polort A                                                                       \
@@ -104,7 +107,7 @@ fi
 
 # step2 slimopa Optional
 if [[ -n $SliceMotion1D ]]; then
-    echo SliceMotion file is provided
+    echo "Slice Motion file is provided."
     1d_tool.py                      \
         -infile $SliceMotion1D      \
         -demean                     \
@@ -119,11 +122,14 @@ if [[ -n $SliceMotion1D ]]; then
 fi
 
 if [[ -n $PhysioRegressor1D ]]; then
+    echo "Physio file is provided."
     1d_tool.py                          \
         -infile $PhysioRegressor1D      \
         -demean                         \
         -write $WD/phyreg.1D       \
         -overwrite
+else
+    echo "Warning: Physio file IS NOT provided."
 fi
 
 if [[ -n $SliceMotion1D ]]; then
@@ -146,23 +152,17 @@ fi
 
 # if voxelwise regressor is provided
 if [[ -n $PVTimeSeries ]] ; then
+    echo "Partial volume regressor is provided."
     voxregstr="-dsort $PVTimeSeries.$AFNIINPUTPOSTFIX "
 else
+    echo "Warning: Partial volume regresor IS NOT provided."
     voxregstr=" "
 fi
 
 # regress out all nuisances here
-echo 3dREMLfit                                   \
-    -input  ${InputfMRI}.$AFNIINPUTPOSTFIX  \
-    $volregstr                              \
-    $sliregstr                              \
-    $voxregstr                              \
-    -Oerrts $WD/errts.$AFNIINPUTPOSTFIX     \
-    -GOFORIT                                \
-    -overwrite 
-
 3dREMLfit                                   \
     -input  ${InputfMRI}.$AFNIINPUTPOSTFIX  \
+    -mask ${ScoutInput_mask}.$AFNIINPUTPOSTFIX  \
     $volregstr                              \
     $sliregstr                              \
     $voxregstr                              \

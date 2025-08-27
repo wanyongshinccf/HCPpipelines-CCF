@@ -197,4 +197,5 @@ $RUN "$SLOMOCODIR"/slomoco_presampling.sh   \
     ${SMSfactor}
 
 # clean up
+# You might delete epi_gdc_mocoxy and epi_gdc_pv, if you don't need them.
 rm -f ${SLOMOCOFolder}/epi_mocoxy* 
