@@ -266,13 +266,13 @@ else
     ${FSLDIR}/bin/fslsplit ${InputfMRI} ${WD}/prevols/vol -t
     FrameMergeSTRING=""
     FrameMergeSTRINGII=""
+    t_div10_track=0
     for ((k=0; k < $NumFrames; k++)); do
       let "k_div10=$k/10" || true
-      k_div10_track=0
       if [ $k -eq 0 ]; then
-        echo -ne "Post-Resampling SLOMOCO at volume $k"
+        echo -ne "Post-Resampling SLOMOCO at volume ${k}.."
       elif [ ${k_div10} -gt ${k_div10_track} ]; then
-        echo -ne ".${t}"
+        echo -ne "${t}.."
         k_div10_track=${k_div10}
       fi
 

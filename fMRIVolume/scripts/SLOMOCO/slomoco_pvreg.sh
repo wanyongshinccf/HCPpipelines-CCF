@@ -44,14 +44,14 @@ fslsplit $InputfMRIgdc ${PartialVolumeFolder}/vol  -t
 
 # generate the reference images at each TR
 str_tcombined=""
+t_div10_track=0
 for ((t = 0 ; t < $tdim ; t++ )); 
 do 
     let "t_div10=$t/10" || true
-    t_div10_track=0
     if [ $t -eq 0 ]; then
-        echo -ne "Generating MOTSIM data and resampling back at volume $t"
+        echo -ne "Generating MOTSIM data and resampling back at volume ${t}.."
     elif [ ${t_div10} -gt ${t_div10_track} ]; then
-        echo -ne ".${t}"
+        echo -ne "${t}.."
         t_div10_track=${t_div10}
     fi 
 
