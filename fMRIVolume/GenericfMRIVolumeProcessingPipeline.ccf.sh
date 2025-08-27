@@ -924,19 +924,19 @@ fi
 if [[ $workstep = "all" ||  $workstep = "regout" ]]; then
     # SLOMOCO regress-out here
     echo "SLOMOCO: Regress out 13 vol-/sli-/voxel-regressors."
-    if [ -e $PhysioFile ]; then
+    if [ -e $PhysioLogFile ]; then
         PhysioStr="--phyregressor="$fMRIFolder"/Physio/RetroTS.PMU.slibase.1D "
     else
         PhysioStr=" "
     fi
-    $RUN "${HCPCCFPIPEDIR_fMRIVol}"/RegressOut.sh                           \
-        --workingdir="$fMRIFolder"/SLOMOCO                                  \
-        --infmri="$fMRIFolder"/SLOMOCO/epi_gdc_mocoxy                       \
-        --outfmri="$fMRIFolder"/"${tcsEchoesOrig[0]}"_slomoco               \
-        --scoutmask="$fMRIFolder/SLOMOCO/${sctEchoesGdc[0]}"_mask           \
+    $RUN "${HCPCCFPIPEDIR_fMRIVol}"/RegressOut.sh \
+        --workingdir="$fMRIFolder"/SLOMOCO \
+        --infmri="$fMRIFolder"/SLOMOCO/epi_gdc_mocoxy \
+        --outfmri="$fMRIFolder"/"${tcsEchoesOrig[0]}"_slomoco \
+        --scoutmask="$fMRIFolder/SLOMOCO/${sctEchoesGdc[0]}"_mask \
         --volregressor="$fMRIFolder"/MotionCorrection/${NameOffMRI}_mc.par \
-        --sliregressor="$fMRIFolder"/SLOMOCO/slimopa.1D                     \
-        --voxregressor="$fMRIFolder"/SLOMOCO/epi_gdc_pv                     \
+        --sliregressor="$fMRIFolder"/SLOMOCO/slimopa.1D \
+        --voxregressor="$fMRIFolder"/SLOMOCO/epi_gdc_pv \
         $PhysioStr
 else
     echo "SKIP: SLOMOCO regress-out"
