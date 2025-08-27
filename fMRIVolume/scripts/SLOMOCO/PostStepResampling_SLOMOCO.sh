@@ -267,7 +267,7 @@ else
     FrameMergeSTRING=""
     FrameMergeSTRINGII=""
     for ((k=0; k < $NumFrames; k++)); do
-      let k_div10=$k/10
+      let "k_div10=$k/10" || true
       k_div10_track=0
       if [ $k -eq 0 ]; then
         echo -ne "Post-Resampling SLOMOCO at volume $k"

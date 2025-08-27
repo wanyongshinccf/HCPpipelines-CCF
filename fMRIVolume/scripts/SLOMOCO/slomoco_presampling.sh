@@ -50,7 +50,7 @@ ${FSLDIR}/bin/fslsplit ${InputfMRI} ${OneSamplingFolder}/prevols/vol -t
 FrameMergeSTRING=""
 FrameMergeSTRINGII=""
 for ((t=0; t < $tdim; t++)); do
-    let t_div10=$t/10
+    let "t_div10=$t/10" || true
     t_div10_track=0
     if [ $t -eq 0 ]; then
         echo -ne "Pre-resampling SLOMOCO data at volume $t"
