@@ -924,6 +924,9 @@ fi
 if [[ $workstep = "all" ||  $workstep = "regout" ]]; then
     # SLOMOCO regress-out here
     echo "SLOMOCO: Regress out 13 vol-/sli-/voxel-regressors."
+    echo "         A lot of MEMORY is being used with 3dREMLfit."
+    echo "         DO NOT submit too many jobs in the same time."
+    
     Physio1DFile="$fMRIFolder"/Physio/RetroTS.PMU.slibase.1D
     if [ -e $Physio1DFile ]; then
         PhysioStr="--phyregressor=$Physio1DFile "
