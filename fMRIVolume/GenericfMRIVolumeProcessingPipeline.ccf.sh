@@ -926,7 +926,6 @@ if [[ $workstep = "all" ||  $workstep = "regout" ]]; then
     echo "SLOMOCO: Regress out 13 vol-/sli-/voxel-regressors."
     echo "         A lot of MEMORY is being used with 3dREMLfit."
     echo "         DO NOT submit too many jobs in the same time."
-    
     Physio1DFile="$fMRIFolder"/Physio/RetroTS.PMU.slibase.1D
     if [ -e $Physio1DFile ]; then
         PhysioStr="--phyregressor=$Physio1DFile "
@@ -937,7 +936,7 @@ if [[ $workstep = "all" ||  $workstep = "regout" ]]; then
         --workingdir="$fMRIFolder"/SLOMOCO \
         --infmri="$fMRIFolder"/SLOMOCO/epi_gdc_mocoxy \
         --outfmri="$fMRIFolder"/"${tcsEchoesOrig[0]}"_slomoco \
-        --scoutmask="$fMRIFolder/SLOMOCO/${sctEchoesGdc[0]}"_mask \
+        --fmrimask="$fMRIFolder"/SLOMOCO/"${NameOffMRI}"_mask \
         --volregressor="$fMRIFolder"/MotionCorrection/${NameOffMRI}_mc.par \
         --sliregressor="$fMRIFolder"/SLOMOCO/slimopa.1D \
         --voxregressor="$fMRIFolder"/SLOMOCO/epi_gdc_pv \

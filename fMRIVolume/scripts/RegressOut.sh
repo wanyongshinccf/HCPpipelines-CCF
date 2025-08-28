@@ -29,7 +29,7 @@ opts_AddOptional '--phyregressor' 'PhysioRegressor1D' '1dfile' "slicewise RETROI
 
 opts_AddOptional '--voxregressor' 'PVTimeSeries' 'file' "Time-series Partial Volume map"
 
-opts_AddMandatory '--scoutmask' 'ScoutInput_mask' 'mask' "Scout mask"
+opts_AddOptional '--fmrimask' 'fmri_mask' 'mask' "fmri mask, not scout mask"
 
 opts_ParseArguments "$@"
 
@@ -45,7 +45,7 @@ verbose_echo " Using parameters ..."
 verbose_echo "         --workingdir: ${WD}"
 verbose_echo "             --infmri: ${InputfMRI}"
 verbose_echo "            --outfmri: ${OutputfMRI}"
-verbose_echo "          --scoutmask: ${ScoutInput_mask}"
+verbose_echo "           --fmrimask: ${fmri_mask}"
 verbose_echo "       --volregressor: ${VolumeMotion1D}"
 verbose_echo "       --sliregressor: ${SliceMotion1D}"
 verbose_echo "       --voxregressor: ${PVTimeSeries}"
@@ -60,13 +60,11 @@ elif [ $FSLOUTPUTTYPE == "NIFTI" ]; then
 fi
 
 # step 0: if no mask is provided
-if [[ ! -n ${ScoutInput_mask} ]]; then
+if [[ ! -n ${fmri_mask} ]]; then
     echo "Mask is not provided"
     echo "Mask is generated fron non-zero voxels"
-    ScoutInput_mask=$WD/Scout_gdc_mask
-    fslmaths $InputfMRI -Tmean -bin $ScoutInput_mask
+    fmri_mask=$WD/Scout_gdc_mask
 fi
-
 
 # Step 1; prepare volmot + polinomial detrending: Mendatory
 if [[ -n $VolumeMotion1D ]] ; then
@@ -162,7 +160,7 @@ fi
 # regress out all nuisances here
 3dREMLfit                                   \
     -input  ${InputfMRI}.$AFNIINPUTPOSTFIX  \
-    -mask ${ScoutInput_mask}.$AFNIINPUTPOSTFIX  \
+    -mask ${fmri_mask}.$AFNIINPUTPOSTFIX  \
     $volregstr                              \
     $sliregstr                              \
     $voxregstr                              \

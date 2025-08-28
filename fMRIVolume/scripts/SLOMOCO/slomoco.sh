@@ -69,15 +69,15 @@ fMRIFolder=/mnt/hcp01/WU_MINN_HCP/103010/rfMRI_REST1_RL
 T1wFolder=/mnt/hcp01/WU_MINN_HCP/103010/T1w
 SLOMOCOFolder="$fMRIFolder"/SLOMOCO 
 NameOffMRI=rfMRI_REST1_RL
-InputfMRI=$fMRIFolder/rfMRI_REST1_RL_orig
-InputfMRIgdc=$fMRIFolder/rfMRI_REST1_RL_gdc
-OutfMRI=$fMRIFolder/rfMRI_REST1_RL_slomoco         
+InputfMRI=$fMRIFolder/${NameOffMRI}_orig
+InputfMRIgdc=$fMRIFolder/${NameOffMRI}_gdc
+OutfMRI=$fMRIFolder/${NameOffMRI}_slomoco         
 ScoutInput=$fMRIFolder/Scout_orig
 ScoutInputgdc=$fMRIFolder/Scout_gdc
 T1acpcBrainMask=${T1wFolder}/brainmask_fs
-fMRI2strOutputTransform=${T1wFolder}/xfms/rfMRI_REST1_RL2str
+fMRI2strOutputTransform=${T1wFolder}/xfms/${NameOffMRI}2str
 MotionMatrixFolder=$fMRIFolder/MotionMatrices
-GradientDistortionField="$fMRIFolder"/rfMRI_REST1_RL_gdc_warp                
+GradientDistortionField="$fMRIFolder"/${NameOffMRI}_gdc_warp                
 SliAcqTimeFile=/mnt/hcp01/SW/HCPpipelines-CCF/global/config/SliceAcqTime_3T_TR720ms.txt
 fi
 
@@ -126,7 +126,7 @@ fi
 # needed for good mask in EPI space.
 # Create a combined warp if nonlinear registration to reference is used
 
-# Generate fMRI_mask (not scout mask) Just use Scout image to save time
+# Generate fMRI_mask (not scout mask) Just use Scout image as reference to save time
 ${FSLDIR}/bin/invwarp -w ${fMRI2strOutputTransform}   \
     -o ${str2fMRIOutputTransform}    \
     -r ${ScoutInput}
