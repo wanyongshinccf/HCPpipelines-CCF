@@ -266,7 +266,7 @@ else
     ${FSLDIR}/bin/fslsplit ${InputfMRI} ${WD}/prevols/vol -t
     FrameMergeSTRING=""
     FrameMergeSTRINGII=""
-    t_div10_track=0
+    k_div10_track=0
     for ((k=0; k < $NumFrames; k++)); do
       let "k_div10=$k/10" || true
       if [ $k -eq 0 ]; then
