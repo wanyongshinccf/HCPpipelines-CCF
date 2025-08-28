@@ -53,6 +53,9 @@ do
     let "t_div10=$t/10" || true
     if [ $t -eq 0 ]; then
         echo -ne "Running inplane motion correction at volume ${t}.."
+    elif [ ${t_div10} -gt ${t_div10_track} ]; then
+        echo -ne "${t}.."
+        t_div10_track=${t_div10}
     elif [ $t -eq ${t_last} ]; then
         echo "done."
     fi 
