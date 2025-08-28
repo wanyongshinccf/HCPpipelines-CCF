@@ -50,6 +50,7 @@ ${FSLDIR}/bin/fslsplit ${InputfMRI} ${OneSamplingFolder}/prevols/vol -t
 FrameMergeSTRING=""
 FrameMergeSTRINGII=""
 t_div10_track=0
+let "t_last=tdim-1"
 for ((t=0; t < $tdim; t++)); do
     let "t_div10=$t/10" || true
     if [ $t -eq 0 ]; then
@@ -57,7 +58,9 @@ for ((t=0; t < $tdim; t++)); do
     elif [ ${t_div10} -gt ${t_div10_track} ]; then
         echo -ne "${t}.."
         t_div10_track=${t_div10}
-    fi 
+    elif [ $t -eq ${t_last} ]; then
+        echo "done."
+    fi  
 
     vnum=`${FSLDIR}/bin/zeropad $t 4`
 

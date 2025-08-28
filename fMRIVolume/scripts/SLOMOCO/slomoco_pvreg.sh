@@ -18,11 +18,11 @@ PartialVolumeFolder=${4}
 
 TESTWS=0
 if [ $TESTWS -gt 0 ]; then
-fMRIFolder=/mnt/hcp01/WU_MINN_HCP/102311/rfMRI_REST1_RL 
-fMRIFolder=/home/shinw/HCP/102311/rfMRI_REST1_RL
-InputfMRItdc=$fMRIFolder/rfMRI_REST1_RL_gdc
+study=100206
+task=rfMRI_REST1_RL
+fMRIFolder=/mnt/hcp01/WU_MINN_HCP/$study/$task 
+InputfMRIgdc=$fMRIFolder/${task}_gdc
 OutputfMRI=$fMRIFolder/SLOMOCO/epi_gdc_pv        
-GradientDistortionField="$fMRIFolder"/rfMRI_REST1_RL_gdc_warp 
 MotionMatrixDir=$fMRIFolder/MotionMatrices
 PartialVolumeFolder="$fMRIFolder"/SLOMOCO/pv                 
 fi
@@ -38,13 +38,32 @@ zdim=`fslval $InputfMRIgdc dim3`
 tdim=`fslval $InputfMRIgdc dim4`
 tr=`fslval $InputfMRIgdc pixdim4`
 
-# generate mean volume of input
-fslmaths $InputfMRIgdc -Tmean ${PartialVolumeFolder}/epimean
+# Split each volume
 fslsplit $InputfMRIgdc ${PartialVolumeFolder}/vol  -t
+
+# volume motion correction in GDC EPI
+str_tcombined=""
+for ((t = 0 ; t < $tdim ; t++ )); 
+do 
+    # moco in gdc
+    vnum=`${FSLDIR}/bin/zeropad $t 4`
+    flirt                                       \
+        -in             ${PartialVolumeFolder}/vol${vnum}         \
+        -ref            ${PartialVolumeFolder}/vol0000        \
+        -applyxfm -init ${MotionMatrixDir}/MAT_${vnum}           \
+        -out            ${PartialVolumeFolder}/epi_gdc_moco${vnum}  \
+        -interp         nearestneighbour
+    str_tcombined="$str_tcombined ${PartialVolumeFolder}/epi_gdc_moco${vnum} "
+done
+
+# combine all the volumes
+${FSLDIR}/bin/fslmerge -tr ${PartialVolumeFolder}/epi_gdc_moco_mean `echo $str_tcombined` $tr
+
 
 # generate the reference images at each TR
 str_tcombined=""
 t_div10_track=0
+let "t_last=tdim-1"
 for ((t = 0 ; t < $tdim ; t++ )); 
 do 
     let "t_div10=$t/10" || true
@@ -53,16 +72,17 @@ do
     elif [ ${t_div10} -gt ${t_div10_track} ]; then
         echo -ne "${t}.."
         t_div10_track=${t_div10}
+    elif [ $t -eq ${t_last} ]; then
+        echo "done."
     fi 
 
     vnum=`${FSLDIR}/bin/zeropad $t 4`
-
     fmat=${MotionMatrixDir}/MAT_${vnum}
     convert_xfm -omat ${PartialVolumeFolder}/bmat -inverse $fmat
 
     # generate MOTSIM
-    flirt                                       \
-        -in             ${PartialVolumeFolder}/vol${vnum}         \
+    flirt \
+        -in             ${PartialVolumeFolder}/epi_gdc_moco_mean \
         -ref            ${PartialVolumeFolder}/epimean        \
         -applyxfm -init ${PartialVolumeFolder}/bmat           \
         -out            ${PartialVolumeFolder}/motsim  \
@@ -88,4 +108,4 @@ ${FSLDIR}/bin/fslmaths ${PartialVolumeFolder}/epipvall -Tstd  ${PartialVolumeFol
 ${FSLDIR}/bin/fslmaths ${PartialVolumeFolder}/epipvall -sub ${PartialVolumeFolder}/epipv_mean -div ${PartialVolumeFolder}/epipv_std ${OutputfMRI}
 
 # clean up
-\rm -rf ${PartialVolumeFolder}
+\rm -f ${PartialVolumeFolder}/* 

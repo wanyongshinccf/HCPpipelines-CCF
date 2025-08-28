@@ -47,14 +47,14 @@ fslsplit $input ${inplanedir}/epivol  -t
 # generate the reference images at each TR
 str_tcombined=""
 t_div10_track=0
+let "t_last=tdim-1"
 for ((t = 0 ; t < $tdim ; t++ )); 
 do 
     let "t_div10=$t/10" || true
     if [ $t -eq 0 ]; then
         echo -ne "Running inplane motion correction at volume ${t}.."
-    elif [ ${t_div10} -gt ${t_div10_track} ]; then
-        echo -ne "${t}.."
-        t_div10_track=${t_div10}
+    elif [ $t -eq ${t_last} ]; then
+        echo "done."
     fi 
     
     fmat=${MotionMatrixDir}/MAT_`printf %04d $t`

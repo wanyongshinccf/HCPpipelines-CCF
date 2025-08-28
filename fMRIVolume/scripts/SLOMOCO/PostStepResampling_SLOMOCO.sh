@@ -267,6 +267,7 @@ else
     FrameMergeSTRING=""
     FrameMergeSTRINGII=""
     k_div10_track=0
+    let "k_last=$NumFrames-1"
     for ((k=0; k < $NumFrames; k++)); do
       let "k_div10=$k/10" || true
       if [ $k -eq 0 ]; then
@@ -274,7 +275,9 @@ else
       elif [ ${k_div10} -gt ${k_div10_track} ]; then
         echo -ne "${k}.."
         k_div10_track=${k_div10}
-      fi
+      elif [ $k -eq ${k_last} ]; then
+        echo "done."
+      fi 
 
       vnum=`${FSLDIR}/bin/zeropad $k 4`
 
@@ -321,6 +324,7 @@ else
     rm -r ${WD}/postvols
     rm -r ${WD}/prevols
 fi
+echo "done."
 
 # Generate a spatial coverage mask that captures the voxels that have data available at *ALL* time points
 # (gets applied in IntensityNormalization.sh; so don't change name here without changing it in that script as well).
