@@ -908,7 +908,7 @@ if [[ $workstep = "all" ||  $workstep = "slomoco" ]]; then
         --workingdir="$fMRIFolder"/SLOMOCO \
         --fmriname=${NameOffMRI} \
         --infmri="$fMRIFolder"/"${tcsEchoesOrig[0]}" \
-        --infmrigdc="$fMRIFolder/${tcsEchoesGdc[0]}"  \
+        --infmrimc="$fMRIFolder"/"$NameOffMRI"_mc \
         --outfmri="$fMRIFolder"/"${tcsEchoesOrig[0]}"_gdc_mocoxy \
         --scoutin="${fMRIFolder}/${sctEchoesOrig[0]}" \
         --motionmatdir="$fMRIFolder"/"$MotionMatrixFolder" \

@@ -20,7 +20,7 @@ opts_AddMandatory '--fmriname' 'NameOffMRI' 'string' "fMRI study name"
 
 opts_AddMandatory '--infmri' 'InputfMRI' 'file' "input fMRI time series (NIFTI)"
 
-opts_AddMandatory '--infmrigdc' 'InputfMRIgdc' 'file' "input gradient distortion corrected fMRI time series (NIFTI)"
+opts_AddMandatory '--infmrimc' 'InputfMRImc' 'file' "input gradient distortion & motion corrected fMRI time series (NIFTI)"
 
 opts_AddMandatory '--outfmri' 'OutputfMRI' 'string' "'name (prefix) to use for the output"
 
@@ -52,7 +52,7 @@ verbose_echo " Using parameters ..."
 verbose_echo "         --workingdir: ${SLOMOCOFolder}"
 verbose_echo "           --fmriname: ${NameOffMRI}"
 verbose_echo "             --infmri: ${InputfMRI}"
-verbose_echo "          --infmrigdc: ${InputfMRIgdc}"
+verbose_echo "           --infmrimc: ${InputfMRImc}"
 verbose_echo "            --outfmri: ${OutputfMRI}"
 verbose_echo "            --scoutin: ${ScoutInput}"
 verbose_echo "       --motionmatdir: ${MotionMatrixFolder}"
@@ -71,7 +71,7 @@ T1wFolder=/mnt/hcp01/WU_MINN_HCP/$study/T1w
 SLOMOCOFolder="$fMRIFolder"/SLOMOCO 
 NameOffMRI=rfMRI_REST1_RL
 InputfMRI=$fMRIFolder/${NameOffMRI}_orig
-InputfMRIgdc=$fMRIFolder/${NameOffMRI}_gdc
+InputfMRImc=$fMRIFolder/${NameOffMRI}_mc
 OutfMRI=$fMRIFolder/${NameOffMRI}_slomoco         
 ScoutInput=$fMRIFolder/Scout_orig
 T1acpcBrainMask=${T1wFolder}/brainmask_fs
@@ -176,7 +176,7 @@ $RUN "$SLOMOCODIR"/slomoco_combine_mopa.sh  \
 echo "SLOMOCO STEP4: Generate partial volume regressor." 
 echo "               Will be used as voxelwise motion nuisance regressor."
 $RUN "$SLOMOCODIR"/slomoco_pvreg.sh         \
-    ${InputfMRIgdc}                         \
+    ${InputfMRImc}                         \
     ${SLOMOCOFolder}/epi_gdc_pv             \
     ${MotionMatrixFolder}                   \
     ${PartialVolumeFolder}

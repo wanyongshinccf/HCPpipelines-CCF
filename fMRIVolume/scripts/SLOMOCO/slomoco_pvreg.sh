@@ -11,7 +11,7 @@ Usage() {
     exit
 }
 
-InputfMRIgdc=`${FSLDIR}/bin/remove_ext ${1}`
+InputfMRImc=`${FSLDIR}/bin/remove_ext ${1}`
 OutputfMRI=`${FSLDIR}/bin/remove_ext ${2}`
 MotionMatrixDir=${3}
 PartialVolumeFolder=${4}
@@ -21,7 +21,7 @@ if [ $TESTWS -gt 0 ]; then
 study=100206
 task=rfMRI_REST1_RL
 fMRIFolder=/mnt/hcp01/WU_MINN_HCP/$study/$task 
-InputfMRIgdc=$fMRIFolder/${task}_gdc
+InputfMRImc=$fMRIFolder/${task}_mc
 OutputfMRI=$fMRIFolder/SLOMOCO/epi_gdc_pv        
 MotionMatrixDir=$fMRIFolder/MotionMatrices
 PartialVolumeFolder="$fMRIFolder"/SLOMOCO/pv                 
@@ -34,31 +34,12 @@ if [ ! -d ${PartialVolumeFolder} ]; then
 fi
 
 ## read dimensions
-zdim=`fslval $InputfMRIgdc dim3`
-tdim=`fslval $InputfMRIgdc dim4`
-tr=`fslval $InputfMRIgdc pixdim4`
+zdim=`fslval $InputfMRImc dim3`
+tdim=`fslval $InputfMRImc dim4`
+tr=`fslval $InputfMRImc pixdim4`
 
 # Split each volume
-fslsplit $InputfMRIgdc ${PartialVolumeFolder}/vol  -t
-
-# volume motion correction in GDC EPI
-str_tcombined=""
-for ((t = 0 ; t < $tdim ; t++ )); 
-do 
-    # moco in gdc
-    vnum=`${FSLDIR}/bin/zeropad $t 4`
-    flirt                                       \
-        -in             ${PartialVolumeFolder}/vol${vnum}         \
-        -ref            ${PartialVolumeFolder}/vol0000        \
-        -applyxfm -init ${MotionMatrixDir}/MAT_${vnum}           \
-        -out            ${PartialVolumeFolder}/epi_gdc_moco${vnum}  \
-        -interp         nearestneighbour
-    str_tcombined="$str_tcombined ${PartialVolumeFolder}/epi_gdc_moco${vnum} "
-done
-
-# combine all the volumes
-${FSLDIR}/bin/fslmerge -tr ${PartialVolumeFolder}/epi_gdc_moco_mean `echo $str_tcombined` $tr
-
+fslmaths $InputfMRImc -Tmean  ${PartialVolumeFolder}/epi_mc_mean
 
 # generate the reference images at each TR
 str_tcombined=""
@@ -82,8 +63,8 @@ do
 
     # generate MOTSIM
     flirt \
-        -in             ${PartialVolumeFolder}/epi_gdc_moco_mean \
-        -ref            ${PartialVolumeFolder}/epimean        \
+        -in             ${PartialVolumeFolder}/epi_mc_mean \
+        -ref            ${PartialVolumeFolder}/epi_mc_mean \
         -applyxfm -init ${PartialVolumeFolder}/bmat           \
         -out            ${PartialVolumeFolder}/motsim  \
         -interp         nearestneighbour
@@ -91,7 +72,7 @@ do
     # move back MOTSIM
     flirt                                       \
         -in             ${PartialVolumeFolder}/motsim         \
-        -ref            ${PartialVolumeFolder}/epimean        \
+        -ref            ${PartialVolumeFolder}/epi_mc_mean  \
         -applyxfm -init ${fmat}                 \
         -out            ${PartialVolumeFolder}/epipv${vnum}  \
         -interp         nearestneighbour
