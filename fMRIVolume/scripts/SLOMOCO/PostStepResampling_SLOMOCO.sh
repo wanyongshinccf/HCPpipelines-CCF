@@ -272,7 +272,7 @@ else
       if [ $k -eq 0 ]; then
         echo -ne "Post-Resampling SLOMOCO at volume ${k}.."
       elif [ ${k_div10} -gt ${k_div10_track} ]; then
-        echo -ne "${t}.."
+        echo -ne "${k}.."
         k_div10_track=${k_div10}
       fi
 
