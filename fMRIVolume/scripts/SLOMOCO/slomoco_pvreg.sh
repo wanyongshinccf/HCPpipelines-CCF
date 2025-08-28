@@ -18,11 +18,11 @@ PartialVolumeFolder=${4}
 
 TESTWS=0
 if [ $TESTWS -gt 0 ]; then
-fMRIFolder=/mnt/hcp01/WU_MINN_HCP/100206/rfMRI_REST1_RL 
-fMRIFolder=/home/shinw/HCP/100206/rfMRI_REST1_RL
+fMRIFolder=/mnt/hcp01/WU_MINN_HCP/102311/rfMRI_REST1_RL 
+fMRIFolder=/home/shinw/HCP/102311/rfMRI_REST1_RL
 InputfMRItdc=$fMRIFolder/rfMRI_REST1_RL_gdc
 OutputfMRI=$fMRIFolder/SLOMOCO/epi_gdc_pv        
-GradientDistortionField=${3}"$fMRIFolder"/rfMRI_REST1_RL_gdc_warp 
+GradientDistortionField="$fMRIFolder"/rfMRI_REST1_RL_gdc_warp 
 MotionMatrixDir=$fMRIFolder/MotionMatrices
 PartialVolumeFolder="$fMRIFolder"/SLOMOCO/pv                 
 fi

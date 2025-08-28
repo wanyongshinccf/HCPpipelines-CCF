@@ -65,15 +65,15 @@ verbose_echo " "
 
 TESTWS=0
 if [ $TESTWS -gt 0 ]; then
-fMRIFolder=/mnt/hcp01/WU_MINN_HCP/103010/rfMRI_REST1_RL
-T1wFolder=/mnt/hcp01/WU_MINN_HCP/103010/T1w
+study=102311
+fMRIFolder=/mnt/hcp01/WU_MINN_HCP/$study/rfMRI_REST1_RL
+T1wFolder=/mnt/hcp01/WU_MINN_HCP/$study/T1w
 SLOMOCOFolder="$fMRIFolder"/SLOMOCO 
 NameOffMRI=rfMRI_REST1_RL
 InputfMRI=$fMRIFolder/${NameOffMRI}_orig
 InputfMRIgdc=$fMRIFolder/${NameOffMRI}_gdc
 OutfMRI=$fMRIFolder/${NameOffMRI}_slomoco         
 ScoutInput=$fMRIFolder/Scout_orig
-ScoutInputgdc=$fMRIFolder/Scout_gdc
 T1acpcBrainMask=${T1wFolder}/brainmask_fs
 fMRI2strOutputTransform=${T1wFolder}/xfms/${NameOffMRI}2str
 MotionMatrixFolder=$fMRIFolder/MotionMatrices
