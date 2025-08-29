@@ -149,7 +149,7 @@ opts_AddOptional '--fmriref' 'fMRIReference' 'folder' "Specifies whether to use 
 
 opts_AddOptional '--fmrirefreg' 'fMRIReferenceReg' 'linear or nonlinear' "Specifies whether to compute and apply a nonlinear transform to align the inputfMRI to the reference fMRI, if one is specified using --fmriref. The nonlinear transform is computed using 'fnirt' following the motion correction using the mean motion corrected fMRI image." "linear"
 
-opts_AddOptional '--step' 'workstep' 'all, gdc, moco, register, slomoco, regout, resample, result' "defaults to all" "all"
+opts_AddOptional '--step' 'workstep' 'all, gdc, moco, register, slomoco, regout, resample, result, clean' "defaults to all" "all"
 
 # opts_AddOptional '--printcom' 'RUN' 'print-command' "DO NOT USE THIS! IT IS NOT IMPLEMENTED!"
 # Disable RUN
@@ -1123,7 +1123,11 @@ if [[ $workstep = "all" ||  $workstep = "result" ]]; then
     ${RUN} cp ${fMRIFolder}/Movement_AbsoluteRMS.txt ${ResultsFolder}
     ${RUN} cp ${fMRIFolder}/Movement_RelativeRMS_mean.txt ${ResultsFolder}
     ${RUN} cp ${fMRIFolder}/Movement_AbsoluteRMS_mean.txt ${ResultsFolder}
+else
+    echo "SKIP: Result, Intensity Normalization and Bias Removal"
+fi
 
+if [[ $workstep = "all" ||  $workstep = "clean" ]]; then
     #Basic Cleanup
     ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_slomoco_nonlin_norm 
 
@@ -1150,7 +1154,7 @@ if [[ $workstep = "all" ||  $workstep = "result" ]]; then
         ${FSLDIR}/bin/imrm "${tcsEchoesMu[@]}"
     fi
 else
-    echo "SKIP: Result, Intensity Normalization and Bias Removal"
+    echo "SKIP: Clean Up"
 fi
 
 log_Msg "Completed!"
