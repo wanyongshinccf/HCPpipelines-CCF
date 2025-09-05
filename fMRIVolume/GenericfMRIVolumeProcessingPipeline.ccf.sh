@@ -628,6 +628,14 @@ fi
 #  End Compliance check
 # ------------------------------------------------------------------------------
 
+## before DO WORK
+InitFile="$fMRIFolder"/InitfMRIVolAnalysis
+if [ -e $InitFile ]; then
+    echo "SKIP: fMRIVolumeProcessingPipeline is intiated."
+    exit
+else
+    touch "$InitFile"
+fi
 
 ########################################## DO WORK ########################################## 
 

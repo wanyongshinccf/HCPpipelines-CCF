@@ -167,8 +167,8 @@ else
     TaskList=()
     TaskList+=(rfMRI_REST1_RL)
     TaskList+=(rfMRI_REST1_LR)
-    #TaskList+=(rfMRI_REST2_RL)
-    #TaskList+=(rfMRI_REST2_LR)
+    TaskList+=(rfMRI_REST2_RL)
+    TaskList+=(rfMRI_REST2_LR)
 fi
 
 # STEP could be (gdc moco reg prepphy slomoco regout resample result) 
