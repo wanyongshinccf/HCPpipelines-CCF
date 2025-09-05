@@ -628,15 +628,6 @@ fi
 #  End Compliance check
 # ------------------------------------------------------------------------------
 
-## before DO WORK
-InitFile="$fMRIFolder"/InitfMRIVolAnalysis
-if [ -e $InitFile ]; then
-    echo "SKIP: fMRIVolumeProcessingPipeline is intiated."
-    exit
-else
-    touch "$InitFile"
-fi
-
 ########################################## DO WORK ########################################## 
 
 T1wFolder="$Path"/"$Subject"/"$T1wFolder"
@@ -649,6 +640,16 @@ if [ ! -e "$fMRIFolder" ] ; then
     log_Msg "mkdir ${fMRIFolder}"
     mkdir "$fMRIFolder"
 fi
+
+## before DO WORK
+InitFile="$fMRIFolder"/InitfMRIVolAnalysis
+if [ -e $InitFile ]; then
+    echo "EXIT: fMRIVolumeProcessingPipeline is intiated."
+    exit
+else
+    touch "$InitFile"
+fi
+
 ${FSLDIR}/bin/imcp "$fMRITimeSeries" "$fMRIFolder"/"$OrigTCSName"
 
 if [[ $nEcho -gt 1 ]] ; then
