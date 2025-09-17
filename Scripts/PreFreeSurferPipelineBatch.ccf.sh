@@ -158,9 +158,9 @@ main()
 	Sessionlist="100307 100610"                             # Space delimited list of session IDs
 
 	# Use any command line specified options to override any of the variable settings above
-	if [ -n "${command_line_specified_study_folder}" ]; then
-		StudyFolder="${command_line_specified_study_folder}"
-	fi
+	#if [ -n "${command_line_specified_study_folder}" ]; then
+	#	StudyFolder="${command_line_specified_study_folder}"
+	#fi
 
 	if [ -n "${command_line_specified_session}" ]; then
 		Sessionlist="${command_line_specified_session}"
@@ -376,8 +376,8 @@ main()
 		# Set to "NONE" if not using SEFMs
 		#
 		# Default file to use when using SEFMs
-		#   TopUpConfig="${HCPPIPEDIR_Config}/b02b0.cnf"
-		TopupConfig="NONE"
+		# TopUpConfig="${HCPPIPEDIR_Config}/b02b0.cnf"
+		TopUpConfig="NONE"
 
 		# ----------------------------------------------------------------------
 		# Variables related to using GE HealthCare Legacy specific Gradient Echo
@@ -488,10 +488,10 @@ main()
 		FNIRTConfig="${HCPPIPEDIR_Config}/T1_2_MNI152_2mm.cnf"
 
 		# Location of Coeffs file or "NONE" to skip
-		# GradientDistortionCoeffs="${HCPPIPEDIR_Config}/coeff_SC72C_Skyra.grad"
+		GradientDistortionCoeffs="${HCPPIPEDIR_Config}/coeff_SC72C_Skyra.grad"
 
 		# Set to NONE to skip gradient distortion correction
-		GradientDistortionCoeffs="NONE"
+		# GradientDistortionCoeffs="NONE"
 
 		# Establish queuing command based on command line option or empty queue name
 		if [[ "${command_line_specified_run_local}" == "TRUE" || "$QUEUE" == "" ]] ; then
