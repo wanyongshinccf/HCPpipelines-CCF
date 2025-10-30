@@ -1146,8 +1146,8 @@ if [[ $workstep = "all" ||  $workstep = "clean" ]]; then
     #Basic Cleanup
     ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_nonlin 
     ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_nonlin_norm 
-    ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_slomoco 
-    ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_slomoco_nonlin_norm 
+    ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_slomoco_nonlin 
+    ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_slomoco_nonlin_norm
     
     #Econ
     #${FSLDIR}/bin/imrm "$fMRIFolder"/"$OrigTCSName"
