@@ -643,11 +643,15 @@ fi
 
 ## before DO WORK
 InitFile="$fMRIFolder"/InitfMRIVolAnalysis
-if [ -e $InitFile ]; then
-    echo "EXIT: fMRIVolumeProcessingPipeline is intiated."
-    exit
+if [[ $workstep = "clean" ]]; then
+    echo "SKIP: Checking InitfMRIVolAnalysis step"
 else
-    touch "$InitFile"
+    if [ -e $InitFile ]; then
+        echo "EXIT: fMRIVolumeProcessingPipeline is intiated."
+        exit
+    else
+        touch "$InitFile"
+    fi
 fi
 
 ${FSLDIR}/bin/imcp "$fMRITimeSeries" "$fMRIFolder"/"$OrigTCSName"
