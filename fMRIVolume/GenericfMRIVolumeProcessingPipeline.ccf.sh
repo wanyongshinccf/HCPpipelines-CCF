@@ -1139,6 +1139,7 @@ fi
 if [[ $workstep = "all" ||  $workstep = "clean" ]]; then
     log_Msg "Clean up"
     #Basic Cleanup
+    echo ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_slomoco_nonlin_norm 
     ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_slomoco_nonlin_norm 
 
     #Econ
