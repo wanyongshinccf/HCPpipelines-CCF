@@ -652,7 +652,12 @@ if [ -e $InitFile ]; then
         echo "         New files will be overwritten."
     fi
 else
-    touch "$InitFile"
+    if [ -e $InitFile ]; then
+        echo "EXIT: fMRIVolumeProcessingPipeline is intiated."
+        exit
+    else
+        touch "$InitFile"
+    fi
 fi
 
 ${FSLDIR}/bin/imcp "$fMRITimeSeries" "$fMRIFolder"/"$OrigTCSName"
@@ -1142,31 +1147,30 @@ else
 fi
 
 if [[ $workstep = "all" ||  $workstep = "clean" ]]; then
+    log_Msg "Clean up (even for HCPpipeline-5.0.0 output)"
+    
     #Basic Cleanup
-    ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_slomoco_nonlin_norm 
-
+    ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_nonlin 
+    ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_nonlin_norm 
+    ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_slomoco_nonlin 
+    ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_slomoco_nonlin_norm
+    
     #Econ
     #${FSLDIR}/bin/imrm "$fMRIFolder"/"$OrigTCSName"
     ${FSLDIR}/bin/imrm "$fMRIFolder"/"$NameOffMRI"_gdc #This can be checked with the SBRef
     ${FSLDIR}/bin/imrm "$fMRIFolder"/"$NameOffMRI"_mc #This can be checked with the unmasked spatially corrected data
 
     # clean up split echo(s)
-    if [[ $nEcho -gt 1 ]]; then
-        for iEcho in $(seq 0 $((nEcho-1))) ; do
+    for iEcho in $(seq 0 $((nEcho-1))) ; do
         ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}"
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_slonmoco_nonlin"
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_slomoco_nonlin_mask"
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_SBRef_nonlin"
+        ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_nonlin"
+        ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_slomoco"
+        ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_slomoco_nonlin"
 
         ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesGdc[iEcho]}"
 
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${sctEchoesOrig[iEcho]}"
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${sctEchoesGdc[iEcho]}"
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${sctEchoesGdc[iEcho]}_mask"
-        done
-        ${FSLDIR}/bin/imrm "${tcsEchoes[@]}"
-        ${FSLDIR}/bin/imrm "${tcsEchoesMu[@]}"
-    fi
+    done
+
 else
     echo "SKIP: Clean Up"
 fi
