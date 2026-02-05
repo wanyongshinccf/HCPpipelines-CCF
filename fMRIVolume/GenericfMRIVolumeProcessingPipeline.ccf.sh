@@ -644,8 +644,13 @@ fi
 ## before DO WORK
 InitFile="$fMRIFolder"/InitfMRIVolAnalysis
 if [ -e $InitFile ]; then
-    echo "EXIT: fMRIVolumeProcessingPipeline is intiated."
-    exit
+    if [ $workstep = "all" ]; then
+        echo "EXIT: fMRIVolumeProcessingPipeline is intiated."
+        exit
+    else
+        echo "Warning: Found the existing files"
+        echo "         New files will be overwritten."
+    fi
 else
     touch "$InitFile"
 fi
