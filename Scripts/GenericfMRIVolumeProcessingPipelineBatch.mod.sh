@@ -5,6 +5,7 @@ get_batch_options() {
 
     command_line_specified_study_folder=""
     command_line_specified_subj=""
+    command_line_specified_local=""
     command_line_specified_run_local="FALSE"
 
     local index=0
@@ -23,6 +24,18 @@ get_batch_options() {
                 command_line_specified_subj=${argument#*=}
                 index=$(( index + 1 ))
                 ;;
+            --local=*)
+                command_line_specified_local=${argument#*=}
+                index=$(( index + 1 ))
+                ;;
+            --task=*)
+                command_line_specified_task=${argument#*=}
+                index=$(( index + 1 ))
+                ;;
+            --step=*)
+                command_line_specified_step=${argument#*=}
+                index=$(( index + 1 ))
+                ;;
             --runlocal)
                 command_line_specified_run_local="TRUE"
                 index=$(( index + 1 ))
@@ -39,9 +52,28 @@ get_batch_options() {
 
 get_batch_options "$@"
 
-StudyFolder="${HOME}/projects/Pipelines_ExampleData" #Location of Subject folders (named by subjectID)
-Subjlist="100307 100610" #Space delimited list of subject IDs
-EnvironmentScript="${HOME}/projects/Pipelines/Examples/Scripts/SetUpHCPPipeline.sh" #Pipeline environment script
+# modify the below to run the script in the multiple local machines.
+
+if [ -n "${command_line_specified_local}" ]; then
+    export localHCPhorse="${command_line_specified_local}"
+else
+    export localHCPhorse="linux"
+fi
+
+if [[ ${localHCPhorse} == "macws" ]]; then
+    StudyFolder="/Volumes/MacExtDrive/work/HCP" #Location of Subject folders (named by subjectID) #W.S
+    Subjlist="100206" #Space delimited list of subject IDs
+    EnvironmentScriptDir="/Users/wanyongshin/SW/git/HCPpipelines-CCF/Scripts"
+elif [[ ${localHCPhorse} == "linux" ]]; then
+    StudyFolder="/mnt/hcp01/WU_MINN_HCP" #Location of Subject folders (named by subjectID) #W.S
+    Subjlist="100206" #Space delimited list of subject IDs
+    EnvironmentScriptDir="/mnt/hcp01/SW/HCPpipelines-CCF/Scripts"
+elif [[ ${localHCPhorse} == "ideapc" ]]; then
+    StudyFolder="/home/shinw/HCP" #Location of Subject folders (named by subjectID) #W.S
+    Subjlist="100206" #Space delimited list of subject IDs
+    EnvironmentScriptDir="/home/shinw/SW/HCPpipelines-CCF/Scripts"    
+fi
+EnvironmentScript="${EnvironmentScriptDir}/SetUpHCPPipeline.sh" #Pipeline environment script
 
 if [ -n "${command_line_specified_study_folder}" ]; then
     StudyFolder="${command_line_specified_study_folder}"
@@ -129,25 +161,27 @@ fi
 SCRIPT_NAME=`basename "$0"`
 echo $SCRIPT_NAME
 
-TaskList=()
-TaskList+=(rfMRI_REST1_RL)
-TaskList+=(rfMRI_REST1_LR)
-TaskList+=(rfMRI_REST2_RL)
-TaskList+=(rfMRI_REST2_LR)
-TaskList+=(tfMRI_EMOTION_RL)
-TaskList+=(tfMRI_EMOTION_LR)
-TaskList+=(tfMRI_GAMBLING_RL)
-TaskList+=(tfMRI_GAMBLING_LR)
-TaskList+=(tfMRI_LANGUAGE_RL)
-TaskList+=(tfMRI_LANGUAGE_LR)
-TaskList+=(tfMRI_MOTOR_RL)
-TaskList+=(tfMRI_MOTOR_LR)
-TaskList+=(tfMRI_RELATIONAL_RL)
-TaskList+=(tfMRI_RELATIONAL_LR)
-TaskList+=(tfMRI_SOCIAL_RL)
-TaskList+=(tfMRI_SOCIAL_LR)
-TaskList+=(tfMRI_WM_RL)
-TaskList+=(tfMRI_WM_LR)
+if [ -n "${command_line_specified_task}" ]; then
+    TaskList=${command_line_specified_task}
+else
+    TaskList=()
+    TaskList+=(rfMRI_REST1_RL)
+    TaskList+=(rfMRI_REST1_LR)
+    TaskList+=(rfMRI_REST2_RL)
+    TaskList+=(rfMRI_REST2_LR)
+fi
+
+# STEP could be (gdc moco reg prepphy slomoco regout resample result) 
+STEP=()
+if [ -n "${command_line_specified_step}" ]; then
+    for s in "${command_line_specified_step[@]}" ; 
+    do 
+        echo $s
+        STEP+=($s)
+    done
+else
+    STEP="all"
+fi
 
 # Start or launch pipeline processing for each subject
 for Subject in $Subjlist ; do
@@ -251,8 +285,7 @@ for Subject in $Subjlist ; do
         # Gradient distortion correction
         # Set to NONE to skip gradient distortion correction
         # (These files are considered proprietary and therefore not provided as part of the HCP Pipelines -- contact Siemens to obtain)
-        # GradientDistortionCoeffs="${HCPPIPEDIR_Config}/coeff_SC72C_Skyra.grad"
-        GradientDistortionCoeffs="NONE"
+        GradientDistortionCoeffs="${HCPPIPEDIR_Config}/coeff_SC72C_Skyra.grad"
 
         # Type of motion correction
         # Values: MCFLIRT (default), FLIRT
@@ -260,14 +293,16 @@ for Subject in $Subjlist ; do
         MCType="MCFLIRT"
 
         if [[ "${command_line_specified_run_local}" == "TRUE" || "$QUEUE" == "" ]] ; then
-            echo "About to locally run ${HCPPIPEDIR}/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh"
+            echo "About to locally run ${HCPHCPPIPEDIR}/fMRIVolume/GenericfMRIVolumeProcessingPipeline.mod.sh"
             queuing_command=("$HCPPIPEDIR"/global/scripts/captureoutput.sh)
         else
-            echo "About to use fsl_sub to queue ${HCPPIPEDIR}/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh"
+            echo "About to use fsl_sub to queue ${HCPPIPEDIR}/fMRIVolume/GenericfMRIVolumeProcessingPipeline.mod.sh"
             queuing_command=("$FSLDIR/bin/fsl_sub" -q "$QUEUE")
         fi
 
-        "${queuing_command[@]}" "$HCPPIPEDIR"/fMRIVolume/GenericfMRIVolumeProcessingPipeline.sh \
+        for step in "${STEP[@]}"
+        do
+            "${queuing_command[@]}" "$HCPCCFPIPEDIR"/fMRIVolume/GenericfMRIVolumeProcessingPipeline.mod.sh \
             --path="$StudyFolder" \
             --subject="$Subject" \
             --fmriname="$fMRIName" \
@@ -286,11 +321,12 @@ for Subject in $Subjlist ; do
             --gdcoeffs="$GradientDistortionCoeffs" \
             --topupconfig="$TopUpConfig" \
             --biascorrection="$BiasCorrection" \
-            --mctype="$MCType"
+            --mctype="$MCType" \
+            --step="$step"
 
-        # The following lines are used for interactive debugging to set the positional parameters: $1 $2 $3 ...
+            # The following lines are used for interactive debugging to set the positional parameters: $1 $2 $3 ...
 
-        echo "set -- --path=$StudyFolder \
+            echo "set -- --path=$StudyFolder \
             --subject=$Subject \
             --fmriname=$fMRIName \
             --fmritcs=$fMRITimeSeries \
@@ -308,9 +344,10 @@ for Subject in $Subjlist ; do
             --gdcoeffs=$GradientDistortionCoeffs \
             --topupconfig=$TopUpConfig \
             --biascorrection=$BiasCorrection \
-            --mctype=$MCType"
+            --mctype=$MCType" \
+            --step="$step"
 
-        echo ". ${EnvironmentScript}"
-
+            echo ". ${EnvironmentScript}"
+        done
     done
 done
