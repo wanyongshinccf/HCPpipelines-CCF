@@ -149,7 +149,7 @@ opts_AddOptional '--fmriref' 'fMRIReference' 'folder' "Specifies whether to use 
 
 opts_AddOptional '--fmrirefreg' 'fMRIReferenceReg' 'linear or nonlinear' "Specifies whether to compute and apply a nonlinear transform to align the inputfMRI to the reference fMRI, if one is specified using --fmriref. The nonlinear transform is computed using 'fnirt' following the motion correction using the mean motion corrected fMRI image." "linear"
 
-opts_AddOptional '--step' 'workstep' 'all, gdc, moco, register, moco, regout, resample, result, clean' "defaults to all" "all"
+opts_AddOptional '--step' 'workstep' 'all, gdc, moco, register, moco, regout, resample, result, clean, onesample' "defaults to all" "all"
 
 # opts_AddOptional '--printcom' 'RUN' 'print-command' "DO NOT USE THIS! IT IS NOT IMPLEMENTED!"
 # Disable RUN
@@ -899,7 +899,7 @@ else
 fi
 
 #One Step Resampling
-if [[ $workstep = "all" ||  $workstep = "resample" ]]; then
+if [[ $workstep = "all" ||  $workstep = "onesample" ||  $workstep = "resample" ]]; then
     log_Msg "One Step Resampling"
     log_Msg "mkdir -p ${fMRIFolder}/OneStepResampling"
     mkdir -p ${fMRIFolder}/OneStepResampling
@@ -938,7 +938,7 @@ else
     echo "SKIP: OneStep Resampling"
 fi
 
-if [[ $workstep = "all" ||  $workstep = "result" ]]; then
+if [[ $workstep = "all" ||  $workstep = "result" ||  $workstep = "onesample" ]]; then
     log_Msg "mkdir -p ${ResultsFolder}"
     mkdir -p ${ResultsFolder}
 
