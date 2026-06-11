@@ -149,6 +149,8 @@ opts_AddOptional '--fmriref' 'fMRIReference' 'folder' "Specifies whether to use 
 
 opts_AddOptional '--fmrirefreg' 'fMRIReferenceReg' 'linear or nonlinear' "Specifies whether to compute and apply a nonlinear transform to align the inputfMRI to the reference fMRI, if one is specified using --fmriref. The nonlinear transform is computed using 'fnirt' following the motion correction using the mean motion corrected fMRI image." "linear"
 
+opts_AddOptional '--step' 'workstep' 'all, gdc, moco, register, moco, regout, resample, result, clean' "defaults to all" "all"
+
 # opts_AddOptional '--printcom' 'RUN' 'print-command' "DO NOT USE THIS! IT IS NOT IMPLEMENTED!"
 # Disable RUN
 RUN=""
@@ -264,6 +266,7 @@ log_Check_Env_Var FREESURFER_HOME
 log_Check_Env_Var HCPPIPEDIR_Global
 
 HCPPIPEDIR_fMRIVol=${HCPPIPEDIR}/fMRIVolume/scripts
+HCPCCFPIPEDIR_fMRIVol=${HCPCCFPIPEDIR}/fMRIVolume/scripts # (CCF, W.S)
 
 # ------------------------------------------------------------------------------
 #  Check for incompatible FSL version - abort if incompatible
@@ -438,6 +441,7 @@ log_Msg "RUN: ${RUN}"
 # Setup PATHS
 GlobalScripts=${HCPPIPEDIR_Global}
 PipelineScripts=${HCPPIPEDIR_fMRIVol}
+CCFPipelineScripts=${HCPCCFPIPEDIR_fMRIVol} # (CCF, W.S)
 
 # #Naming Conventions
 T1wImage="T1w_acpc_dc"
@@ -636,8 +640,27 @@ if [ ! -e "$fMRIFolder" ] ; then
     log_Msg "mkdir ${fMRIFolder}"
     mkdir "$fMRIFolder"
 fi
-${FSLDIR}/bin/imcp "$fMRITimeSeries" "$fMRIFolder"/"$OrigTCSName"
 
+## before DO WORK
+InitFile="$fMRIFolder"/InitfMRIVolAnalysis
+if [ -e $InitFile ]; then
+    if [ $workstep = "all" ]; then
+        echo "EXIT: fMRIVolumeProcessingPipeline is intiated."
+        exit
+    else
+        echo "Warning: Found the existing files"
+        echo "         New files will be overwritten."
+    fi
+else
+    if [ -e $InitFile ]; then
+        echo "EXIT: fMRIVolumeProcessingPipeline is intiated."
+        exit
+    else
+        touch "$InitFile"
+    fi
+fi
+
+${FSLDIR}/bin/imcp "$fMRITimeSeries" "$fMRIFolder"/"$OrigTCSName"
 
 if [[ $nEcho -gt 1 ]] ; then
     log_Msg "$nEcho TE's supplied, running in multi-echo mode"
@@ -646,7 +669,6 @@ if [[ $nEcho -gt 1 ]] ; then
     EchoDir="${fMRIFolder}/MultiEcho"
     mkdir -p "$EchoDir"
 fi
-
 
 # --- Do slice time correction if indicated
 # Note that in the case of STC, $fMRIFolder/$OrigTCSName will NOT be the "original" time-series
@@ -725,44 +747,46 @@ if [ $DistortionCorrection = "NONE" ] ; then
     fi
 fi
 
-
 #Gradient Distortion Correction of fMRI
-log_Msg "Gradient Distortion Correction of fMRI"
-if [ ! $GradientDistortionCoeffs = "NONE" ] ; then
-    log_Msg "mkdir -p ${fMRIFolder}/GradientDistortionUnwarp"
-    mkdir -p "$fMRIFolder"/GradientDistortionUnwarp
-    ${RUN} "$GlobalScripts"/GradientDistortionUnwarp.sh \
-        --workingdir="$fMRIFolder"/GradientDistortionUnwarp \
-        --coeffs="$GradientDistortionCoeffs" \
-        --in="$fMRIFolder"/"$OrigTCSName" \
-        --out="$fMRIFolder"/"$NameOffMRI"_gdc \
-        --owarp="$fMRIFolder"/"$NameOffMRI"_gdc_warp
+if [[ $workstep = "all" ||  $workstep = "gdc" ]]; then
+    log_Msg "Gradient Distortion Correction of fMRI"
+    if [ ! $GradientDistortionCoeffs = "NONE" ] ; then
+        log_Msg "mkdir -p ${fMRIFolder}/GradientDistortionUnwarp"
+        mkdir -p "$fMRIFolder"/GradientDistortionUnwarp
+        ${RUN} "$GlobalScripts"/GradientDistortionUnwarp.sh \
+            --workingdir="$fMRIFolder"/GradientDistortionUnwarp \
+            --coeffs="$GradientDistortionCoeffs" \
+            --in="$fMRIFolder"/"$OrigTCSName" \
+            --out="$fMRIFolder"/"$NameOffMRI"_gdc \
+            --owarp="$fMRIFolder"/"$NameOffMRI"_gdc_warp
 
-    log_Msg "mkdir -p ${fMRIFolder}/${ScoutName}_GradientDistortionUnwarp"
-    mkdir -p "$fMRIFolder"/"$ScoutName"_GradientDistortionUnwarp
-    ${RUN} "$GlobalScripts"/GradientDistortionUnwarp.sh \
-        --workingdir="$fMRIFolder"/"$ScoutName"_GradientDistortionUnwarp \
-        --coeffs="$GradientDistortionCoeffs" \
-        --in="$fMRIFolder"/"$OrigScoutName" \
-        --out="$fMRIFolder"/"$ScoutName"_gdc \
-        --owarp="$fMRIFolder"/"$ScoutName"_gdc_warp
+        log_Msg "mkdir -p ${fMRIFolder}/${ScoutName}_GradientDistortionUnwarp"
+        mkdir -p "$fMRIFolder"/"$ScoutName"_GradientDistortionUnwarp
+        ${RUN} "$GlobalScripts"/GradientDistortionUnwarp.sh \
+            --workingdir="$fMRIFolder"/"$ScoutName"_GradientDistortionUnwarp \
+            --coeffs="$GradientDistortionCoeffs" \
+            --in="$fMRIFolder"/"$OrigScoutName" \
+            --out="$fMRIFolder"/"$ScoutName"_gdc \
+            --owarp="$fMRIFolder"/"$ScoutName"_gdc_warp
 
-    if [[ $UseJacobian == "true" ]]
-    then
-        ${RUN} ${FSLDIR}/bin/fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc -mul "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian "$fMRIFolder"/"$NameOffMRI"_gdc
-        ${RUN} ${FSLDIR}/bin/fslmaths "$fMRIFolder"/"$ScoutName"_gdc -mul "$fMRIFolder"/"$ScoutName"_gdc_warp_jacobian "$fMRIFolder"/"$ScoutName"_gdc
+        if [[ $UseJacobian == "true" ]]; then
+            ${RUN} ${FSLDIR}/bin/fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc -mul "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian "$fMRIFolder"/"$NameOffMRI"_gdc
+            ${RUN} ${FSLDIR}/bin/fslmaths "$fMRIFolder"/"$ScoutName"_gdc -mul "$fMRIFolder"/"$ScoutName"_gdc_warp_jacobian "$fMRIFolder"/"$ScoutName"_gdc
+        fi
+    else
+        log_Msg "NOT PERFORMING GRADIENT DISTORTION CORRECTION"
+        ${RUN} ${FSLDIR}/bin/imcp "$fMRIFolder"/"$OrigTCSName" "$fMRIFolder"/"$NameOffMRI"_gdc
+        ${RUN} ${FSLDIR}/bin/fslroi "$fMRIFolder"/"$NameOffMRI"_gdc "$fMRIFolder"/"$NameOffMRI"_gdc_warp 0 3
+        ${RUN} ${FSLDIR}/bin/fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc_warp -mul 0 "$fMRIFolder"/"$NameOffMRI"_gdc_warp
+        ${RUN} ${FSLDIR}/bin/imcp "$fMRIFolder"/"$OrigScoutName" "$fMRIFolder"/"$ScoutName"_gdc
+        #make fake jacobians of all 1s, for completeness
+        ${RUN} ${FSLDIR}/bin/fslmaths "$fMRIFolder"/"$OrigScoutName" -mul 0 -add 1 "$fMRIFolder"/"$ScoutName"_gdc_warp_jacobian
+        ${RUN} ${FSLDIR}/bin/fslroi "$fMRIFolder"/"$NameOffMRI"_gdc_warp "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian 0 1
+        ${RUN} ${FSLDIR}/bin/fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian -mul 0 -add 1 "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian
     fi
 else
-    log_Msg "NOT PERFORMING GRADIENT DISTORTION CORRECTION"
-    ${RUN} ${FSLDIR}/bin/imcp "$fMRIFolder"/"$OrigTCSName" "$fMRIFolder"/"$NameOffMRI"_gdc
-    ${RUN} ${FSLDIR}/bin/fslroi "$fMRIFolder"/"$NameOffMRI"_gdc "$fMRIFolder"/"$NameOffMRI"_gdc_warp 0 3
-    ${RUN} ${FSLDIR}/bin/fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc_warp -mul 0 "$fMRIFolder"/"$NameOffMRI"_gdc_warp
-    ${RUN} ${FSLDIR}/bin/imcp "$fMRIFolder"/"$OrigScoutName" "$fMRIFolder"/"$ScoutName"_gdc
-    #make fake jacobians of all 1s, for completeness
-    ${RUN} ${FSLDIR}/bin/fslmaths "$fMRIFolder"/"$OrigScoutName" -mul 0 -add 1 "$fMRIFolder"/"$ScoutName"_gdc_warp_jacobian
-    ${RUN} ${FSLDIR}/bin/fslroi "$fMRIFolder"/"$NameOffMRI"_gdc_warp "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian 0 1
-    ${RUN} ${FSLDIR}/bin/fslmaths "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian -mul 0 -add 1 "$fMRIFolder"/"$NameOffMRI"_gdc_warp_jacobian
-fi
+    echo "SKIP: Gradient distortion correction"
+fi 
 
 #Split echos
 if [[ ${nEcho} -gt 1 ]]; then
@@ -789,34 +813,39 @@ else
     sctEchoesGdc[0]="${ScoutName}_gdc"
 fi
 
-log_Msg "mkdir -p ${fMRIFolder}/MotionCorrection"
-mkdir -p "$fMRIFolder"/MotionCorrection
-
-${RUN} "$PipelineScripts"/MotionCorrection.sh \
-       "$fMRIFolder"/MotionCorrection \
-       "$fMRIFolder/${tcsEchoesGdc[0]}" \
-       "$fMRIFolder/${sctEchoesGdc[0]}" \
-       "$fMRIFolder"/"$NameOffMRI"_mc \
-       "$fMRIFolder"/"$MovementRegressor" \
-       "$fMRIFolder"/"$MotionMatrixFolder" \
-       "$MotionMatrixPrefix" \
-       "$MotionCorrectionType" \
-       "$fMRIReferenceReg"
+# motion correction 
+if [[ $workstep = "all" ||  $workstep = "moco" ]]; then
+    log_Msg "mkdir -p ${fMRIFolder}/MotionCorrection"
+    mkdir -p "$fMRIFolder"/MotionCorrection
+    ${RUN} "$PipelineScripts"/MotionCorrection.sh \
+        "$fMRIFolder"/MotionCorrection \
+        "$fMRIFolder/${tcsEchoesGdc[0]}" \
+        "$fMRIFolder/${sctEchoesGdc[0]}" \
+        "$fMRIFolder"/"$NameOffMRI"_mc \
+        "$fMRIFolder"/"$MovementRegressor" \
+        "$fMRIFolder"/"$MotionMatrixFolder" \
+        "$MotionMatrixPrefix" \
+        "$MotionCorrectionType" \
+        "$fMRIReferenceReg" 
+else
+    echo "SKIP: Motion Correction"
+fi
 
 #EPI Distortion Correction and EPI to T1w Registration
 DCFolderName=DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased
 DCFolder=${fMRIFolder}/${DCFolderName}
 
-if [ $fMRIReference = "NONE" ] ; then
-    log_Msg "EPI Distortion Correction and EPI to T1w Registration"
+if [[ $workstep = "all" ||  $workstep = "register" ]]; then
+    if [ $fMRIReference = "NONE" ] ; then
+        log_Msg "EPI Distortion Correction and EPI to T1w Registration"
 
-    if [ -e ${DCFolder} ] ; then
-       ${RUN} rm -r ${DCFolder}
-    fi
-    log_Msg "mkdir -p ${DCFolder}"
-    mkdir -p ${DCFolder}
+        if [ -e ${DCFolder} ] ; then
+           ${RUN} rm -r ${DCFolder}
+        fi
+        log_Msg "mkdir -p ${DCFolder}"
+        mkdir -p ${DCFolder}
 
-    ${RUN} ${PipelineScripts}/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh \
+        ${RUN} ${PipelineScripts}/DistortionCorrectionAndEPIToT1wReg_FLIRTBBRAndFreeSurferBBRbased.sh \
         --workingdir=${DCFolder} \
         --scoutin="${fMRIFolder}/${sctEchoesGdc[0]}" \
         --t1=${T1wFolder}/${T1wImage} \
@@ -847,196 +876,207 @@ if [ $fMRIReference = "NONE" ] ; then
         --usejacobian=${UseJacobian} \
         --preregistertool=${PreregisterTool}
 
-else
-    log_Msg "linking EPI distortion correction and T1 registration from ${fMRIReference}"
-    if [ -d ${DCFolder} ] ; then
-        log_Warn "     ... removing preexisiting files"
-        rm -r ${DCFolder}
-    fi
-    if [ -h ${DCFolder} ] ; then
-        log_Warn "     ... removing stale link"
-        rm ${DCFolder}
-    fi
-    ln -s ${fMRIReferencePath}/${DCFolderName} ${DCFolder}
- 
-    if [ $("${FSLDIR}/bin/imtest ${T1wFolder}/xfms/${fMRIReference}2str") -eq 0 ]; then
-        log_Err_Abort "The expected ${T1wFolder}/xfms/${fMRIReference}2str from the reference (${fMRIReference}) does not exist!"    
     else
-        ${FSLDIR}/bin/imcp ${T1wFolder}/xfms/${fMRIReference}2str ${T1wFolder}/xfms/${fMRI2strOutputTransform}
+        log_Msg "linking EPI distortion correction and T1 registration from ${fMRIReference}"
+        if [ -d ${DCFolder} ] ; then
+            log_Warn "     ... removing preexisiting files"
+            rm -r ${DCFolder}
+        fi
+        if [ -h ${DCFolder} ] ; then
+            log_Warn "     ... removing stale link"
+            rm ${DCFolder}
+        fi
+        ln -s ${fMRIReferencePath}/${DCFolderName} ${DCFolder}
+ 
+        if [ $("${FSLDIR}/bin/imtest ${T1wFolder}/xfms/${fMRIReference}2str") -eq 0 ]; then
+            log_Err_Abort "The expected ${T1wFolder}/xfms/${fMRIReference}2str from the reference (${fMRIReference}) does not exist!"    
+        else
+            ${FSLDIR}/bin/imcp ${T1wFolder}/xfms/${fMRIReference}2str ${T1wFolder}/xfms/${fMRI2strOutputTransform}
+        fi
     fi
+else
+    echo "SKIP: EPI distortion correction and T1 registration "
 fi
 
 #One Step Resampling
-log_Msg "One Step Resampling"
-log_Msg "mkdir -p ${fMRIFolder}/OneStepResampling"
-mkdir -p ${fMRIFolder}/OneStepResampling
-tscArgs="";sctArgs="";
-for iEcho in $(seq 0 $((nEcho-1))) ; do
-    ${RUN} ${PipelineScripts}/OneStepResampling.sh \
-        --workingdir=${fMRIFolder}/OneStepResampling \
-        --infmri="${fMRIFolder}/${tcsEchoesOrig[iEcho]}.nii.gz" \
-        --t1=${AtlasSpaceFolder}/${T1wAtlasName} \
-        --fmriresout=${FinalfMRIResolution} \
-        --fmrifolder=${fMRIFolder} \
-        --fmri2structin=${T1wFolder}/xfms/${fMRI2strOutputTransform} \
-        --struct2std=${AtlasSpaceFolder}/xfms/${AtlasTransform} \
-        --owarp=${AtlasSpaceFolder}/xfms/${OutputfMRI2StandardTransform} \
-        --oiwarp=${AtlasSpaceFolder}/xfms/${Standard2OutputfMRITransform} \
-        --motionmatdir=${fMRIFolder}/${MotionMatrixFolder} \
-        --motionmatprefix=${MotionMatrixPrefix} \
-        --ofmri="${fMRIFolder}/${tcsEchoesOrig[iEcho]}_nonlin" \
-        --freesurferbrainmask=${AtlasSpaceFolder}/${FreeSurferBrainMask} \
-        --biasfield=${AtlasSpaceFolder}/${BiasFieldMNI} \
-        --gdfield=${fMRIFolder}/${NameOffMRI}_gdc_warp \
-        --scoutin="${fMRIFolder}/${sctEchoesOrig[iEcho]}" \
-        --scoutgdcin="${fMRIFolder}/${sctEchoesGdc[iEcho]}" \
-        --oscout="${fMRIFolder}/${tcsEchoesOrig[iEcho]}_SBRef_nonlin" \
-        --ojacobian=${fMRIFolder}/${JacobianOut}_MNI.${FinalfMRIResolution} \
-        --fmrirefpath=${fMRIReferencePath} \
-        --fmrirefreg=${fMRIReferenceReg} \
-        --wb-resample=${useWbResample}
-    tscArgs="$tscArgs -volume ${fMRIFolder}/${tcsEchoesOrig[iEcho]}_nonlin.nii.gz"
-    sctArgs="$sctArgs -volume ${fMRIFolder}/${tcsEchoesOrig[iEcho]}_SBRef_nonlin.nii.gz"
-done
-wb_command -volume-merge ${fMRIFolder}/${NameOffMRI}_nonlin.nii.gz ${tscArgs} # reconcatenate resampled outputs
-wb_command -volume-merge ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin.nii.gz ${sctArgs}
-${FSLDIR}/bin/immv "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_nonlin_mask.nii.gz" "${fMRIFolder}/${NameOffMRI}_nonlin_mask.nii.gz"
+if [[ $workstep = "all" ||  $workstep = "resample" ]]; then
+    log_Msg "One Step Resampling"
+    log_Msg "mkdir -p ${fMRIFolder}/OneStepResampling"
+    mkdir -p ${fMRIFolder}/OneStepResampling
+    tscArgs="";sctArgs="";
+    for iEcho in $(seq 0 $((nEcho-1))) ; do
+        ${RUN} ${PipelineScripts}/OneStepResampling.sh \
+            --workingdir=${fMRIFolder}/OneStepResampling \
+            --infmri="${fMRIFolder}/${tcsEchoesOrig[iEcho]}.nii.gz" \
+            --t1=${AtlasSpaceFolder}/${T1wAtlasName} \
+            --fmriresout=${FinalfMRIResolution} \
+            --fmrifolder=${fMRIFolder} \
+            --fmri2structin=${T1wFolder}/xfms/${fMRI2strOutputTransform} \
+            --struct2std=${AtlasSpaceFolder}/xfms/${AtlasTransform} \
+            --owarp=${AtlasSpaceFolder}/xfms/${OutputfMRI2StandardTransform} \
+            --oiwarp=${AtlasSpaceFolder}/xfms/${Standard2OutputfMRITransform} \
+            --motionmatdir=${fMRIFolder}/${MotionMatrixFolder} \
+            --motionmatprefix=${MotionMatrixPrefix} \
+            --ofmri="${fMRIFolder}/${tcsEchoesOrig[iEcho]}_nonlin" \
+            --freesurferbrainmask=${AtlasSpaceFolder}/${FreeSurferBrainMask} \
+            --biasfield=${AtlasSpaceFolder}/${BiasFieldMNI} \
+            --gdfield=${fMRIFolder}/${NameOffMRI}_gdc_warp \
+            --scoutin="${fMRIFolder}/${sctEchoesOrig[iEcho]}" \
+            --scoutgdcin="${fMRIFolder}/${sctEchoesGdc[iEcho]}" \
+            --oscout="${fMRIFolder}/${tcsEchoesOrig[iEcho]}_SBRef_nonlin" \
+            --ojacobian=${fMRIFolder}/${JacobianOut}_MNI.${FinalfMRIResolution} \
+            --fmrirefpath=${fMRIReferencePath} \
+            --fmrirefreg=${fMRIReferenceReg} \
+            --wb-resample=${useWbResample}
+        tscArgs="$tscArgs -volume ${fMRIFolder}/${tcsEchoesOrig[iEcho]}_nonlin.nii.gz"
+        sctArgs="$sctArgs -volume ${fMRIFolder}/${tcsEchoesOrig[iEcho]}_SBRef_nonlin.nii.gz"
+    done
+    wb_command -volume-merge ${fMRIFolder}/${NameOffMRI}_nonlin.nii.gz ${tscArgs} # reconcatenate resampled outputs
+    wb_command -volume-merge ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin.nii.gz ${sctArgs}
+    ${FSLDIR}/bin/immv "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_nonlin_mask.nii.gz" "${fMRIFolder}/${NameOffMRI}_nonlin_mask.nii.gz"
+else
+    echo "SKIP: OneStep Resampling"
+fi
 
-log_Msg "mkdir -p ${ResultsFolder}"
-mkdir -p ${ResultsFolder}
+if [[ $workstep = "all" ||  $workstep = "result" ]]; then
+    log_Msg "mkdir -p ${ResultsFolder}"
+    mkdir -p ${ResultsFolder}
 
-#now that we have the final MNI fMRI space, resample the T1w-space sebased bias field related outputs
-#the alternative is to add a bunch of optional arguments to OneStepResampling that just do the same thing
-#we need to do this before intensity normalization, as it uses the bias field output
-if [[ ${DistortionCorrection} == "${SPIN_ECHO_METHOD_OPT}" ]]
-then
-    if [ "$fMRIReference" = "NONE" ]; then        
-        #create MNI space corrected fieldmap images
-        ${FSLDIR}/bin/applywarp --rel --interp=spline --in=${DCFolder}/PhaseOne_gdc_dc_unbias -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -o ${ResultsFolder}/${NameOffMRI}_PhaseOne_gdc_dc
-        ${FSLDIR}/bin/fslmaths ${ResultsFolder}/${NameOffMRI}_PhaseOne_gdc_dc -mas ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_PhaseOne_gdc_dc
-        ${FSLDIR}/bin/applywarp --rel --interp=spline --in=${DCFolder}/PhaseTwo_gdc_dc_unbias -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -o ${ResultsFolder}/${NameOffMRI}_PhaseTwo_gdc_dc
-        ${FSLDIR}/bin/fslmaths ${ResultsFolder}/${NameOffMRI}_PhaseTwo_gdc_dc -mas ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_PhaseTwo_gdc_dc    
-    else        
-        #as these have been already computed, we can copy them from the reference fMRI
-        ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_PhaseOne_gdc_dc ${ResultsFolder}/${NameOffMRI}_PhaseOne_gdc_dc
-        ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_PhaseOne_gdc_dc ${ResultsFolder}/${NameOffMRI}_PhaseOne_gdc_dc
-        ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_PhaseTwo_gdc_dc ${ResultsFolder}/${NameOffMRI}_PhaseTwo_gdc_dc
-        ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_PhaseTwo_gdc_dc ${ResultsFolder}/${NameOffMRI}_PhaseTwo_gdc_dc
-    fi
-
-    #create MNINonLinear final fMRI resolution bias field outputs
-    if [[ ${BiasCorrection} == "SEBASED" ]]
+    #now that we have the final MNI fMRI space, resample the T1w-space sebased bias field related outputs
+    #the alternative is to add a bunch of optional arguments to OneStepResampling that just do the same thing
+    #we need to do this before intensity normalization, as it uses the bias field output
+    if [[ ${DistortionCorrection} == "${SPIN_ECHO_METHOD_OPT}" ]]
     then
-        if [ "$fMRIReference" = "NONE" ]; then  
-            ${FSLDIR}/bin/applywarp --interp=trilinear -i ${DCFolder}/ComputeSpinEchoBiasField/sebased_bias_dil.nii.gz -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -o ${ResultsFolder}/${NameOffMRI}_sebased_bias.nii.gz
-            ${FSLDIR}/bin/fslmaths ${ResultsFolder}/${NameOffMRI}_sebased_bias.nii.gz -mas ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_sebased_bias.nii.gz
-
-            ${FSLDIR}/bin/applywarp --interp=trilinear -i ${DCFolder}/ComputeSpinEchoBiasField/sebased_reference_dil.nii.gz -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -o ${ResultsFolder}/${NameOffMRI}_sebased_reference.nii.gz
-            ${FSLDIR}/bin/fslmaths ${ResultsFolder}/${NameOffMRI}_sebased_reference.nii.gz -mas ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_sebased_reference.nii.gz       
-
-            ${FSLDIR}/bin/applywarp --interp=trilinear -i ${DCFolder}/ComputeSpinEchoBiasField/${NameOffMRI}_dropouts.nii.gz -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -o ${ResultsFolder}/${NameOffMRI}_dropouts.nii.gz
-
-            ${FSLDIR}/bin/applywarp --interp=trilinear -i ${DCFolder}/ComputeSpinEchoBiasField/${NameOffMRI}_pseudo_transmit_raw.nii.gz -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -o ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_raw.nii.gz
-            ${FSLDIR}/bin/fslmaths ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_raw.nii.gz -mas ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_raw.nii.gz
-            ${FSLDIR}/bin/applywarp --interp=trilinear -i ${DCFolder}/ComputeSpinEchoBiasField/${NameOffMRI}_pseudo_transmit_field.nii.gz -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -o ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_field.nii.gz
-            ${FSLDIR}/bin/fslmaths ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_field.nii.gz -mas ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_field.nii.gz
-        else
+        if [ "$fMRIReference" = "NONE" ]; then        
+            #create MNI space corrected fieldmap images
+            ${FSLDIR}/bin/applywarp --rel --interp=spline --in=${DCFolder}/PhaseOne_gdc_dc_unbias -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -o ${ResultsFolder}/${NameOffMRI}_PhaseOne_gdc_dc
+            ${FSLDIR}/bin/fslmaths ${ResultsFolder}/${NameOffMRI}_PhaseOne_gdc_dc -mas ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_PhaseOne_gdc_dc
+            ${FSLDIR}/bin/applywarp --rel --interp=spline --in=${DCFolder}/PhaseTwo_gdc_dc_unbias -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -o ${ResultsFolder}/${NameOffMRI}_PhaseTwo_gdc_dc
+            ${FSLDIR}/bin/fslmaths ${ResultsFolder}/${NameOffMRI}_PhaseTwo_gdc_dc -mas ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_PhaseTwo_gdc_dc    
+        else        
             #as these have been already computed, we can copy them from the reference fMRI
-            ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_sebased_bias.nii.gz ${ResultsFolder}/${NameOffMRI}_sebased_bias.nii.gz
-            ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_sebased_reference.nii.gz ${ResultsFolder}/${NameOffMRI}_sebased_reference.nii.gz
-            ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_dropouts.nii.gz ${ResultsFolder}/${NameOffMRI}_dropouts.nii.gz
-            ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_pseudo_transmit_raw.nii.gz ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_raw.nii.gz
-            ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_pseudo_transmit_field.nii.gz ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_field.nii.gz
+            ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_PhaseOne_gdc_dc ${ResultsFolder}/${NameOffMRI}_PhaseOne_gdc_dc
+            ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_PhaseOne_gdc_dc ${ResultsFolder}/${NameOffMRI}_PhaseOne_gdc_dc
+            ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_PhaseTwo_gdc_dc ${ResultsFolder}/${NameOffMRI}_PhaseTwo_gdc_dc
+            ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_PhaseTwo_gdc_dc ${ResultsFolder}/${NameOffMRI}_PhaseTwo_gdc_dc
+        fi
+
+        #create MNINonLinear final fMRI resolution bias field outputs
+        if [[ ${BiasCorrection} == "SEBASED" ]]
+        then
+            if [ "$fMRIReference" = "NONE" ]; then  
+                ${FSLDIR}/bin/applywarp --interp=trilinear -i ${DCFolder}/ComputeSpinEchoBiasField/sebased_bias_dil.nii.gz -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -o ${ResultsFolder}/${NameOffMRI}_sebased_bias.nii.gz
+                ${FSLDIR}/bin/fslmaths ${ResultsFolder}/${NameOffMRI}_sebased_bias.nii.gz -mas ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_sebased_bias.nii.gz
+
+                ${FSLDIR}/bin/applywarp --interp=trilinear -i ${DCFolder}/ComputeSpinEchoBiasField/sebased_reference_dil.nii.gz -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -o ${ResultsFolder}/${NameOffMRI}_sebased_reference.nii.gz
+                ${FSLDIR}/bin/fslmaths ${ResultsFolder}/${NameOffMRI}_sebased_reference.nii.gz -mas ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_sebased_reference.nii.gz       
+
+                ${FSLDIR}/bin/applywarp --interp=trilinear -i ${DCFolder}/ComputeSpinEchoBiasField/${NameOffMRI}_dropouts.nii.gz -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -o ${ResultsFolder}/${NameOffMRI}_dropouts.nii.gz
+
+                ${FSLDIR}/bin/applywarp --interp=trilinear -i ${DCFolder}/ComputeSpinEchoBiasField/${NameOffMRI}_pseudo_transmit_raw.nii.gz -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -o ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_raw.nii.gz
+                ${FSLDIR}/bin/fslmaths ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_raw.nii.gz -mas ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_raw.nii.gz
+                ${FSLDIR}/bin/applywarp --interp=trilinear -i ${DCFolder}/ComputeSpinEchoBiasField/${NameOffMRI}_pseudo_transmit_field.nii.gz -r ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin -w ${AtlasSpaceFolder}/xfms/${AtlasTransform} -o ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_field.nii.gz
+                ${FSLDIR}/bin/fslmaths ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_field.nii.gz -mas ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_field.nii.gz
+            else
+                #as these have been already computed, we can copy them from the reference fMRI
+                ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_sebased_bias.nii.gz ${ResultsFolder}/${NameOffMRI}_sebased_bias.nii.gz
+                ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_sebased_reference.nii.gz ${ResultsFolder}/${NameOffMRI}_sebased_reference.nii.gz
+                ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_dropouts.nii.gz ${ResultsFolder}/${NameOffMRI}_dropouts.nii.gz
+                ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_pseudo_transmit_raw.nii.gz ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_raw.nii.gz
+                ${FSLDIR}/bin/imcp ${ReferenceResultsFolder}/${fMRIReference}_pseudo_transmit_field.nii.gz ${ResultsFolder}/${NameOffMRI}_pseudo_transmit_field.nii.gz
+            fi
         fi
     fi
-fi
 
-#Intensity Normalization and Bias Removal
-log_Msg "Intensity Normalization and Bias Removal"
-${RUN} ${PipelineScripts}/IntensityNormalization.sh \
-    --infmri=${fMRIFolder}/${NameOffMRI}_nonlin \
-    --biasfield=${UseBiasFieldMNI} \
-    --jacobian=${fMRIFolder}/${JacobianOut}_MNI.${FinalfMRIResolution} \
-    --brainmask=${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution} \
-    --ofmri=${fMRIFolder}/${NameOffMRI}_nonlin_norm \
-    --inscout=${fMRIFolder}/${NameOffMRI}_SBRef_nonlin \
-    --oscout=${fMRIFolder}/${NameOffMRI}_SBRef_nonlin_norm \
-    --usejacobian=${UseJacobian} \
-    --fmrimask=${fMRIMask}
+    #Intensity Normalization and Bias Removal
+    log_Msg "Intensity Normalization and Bias Removal"
+    ${RUN} ${PipelineScripts}/IntensityNormalization.sh \
+        --infmri=${fMRIFolder}/${NameOffMRI}_nonlin \
+        --biasfield=${UseBiasFieldMNI} \
+        --jacobian=${fMRIFolder}/${JacobianOut}_MNI.${FinalfMRIResolution} \
+        --brainmask=${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution} \
+        --ofmri=${fMRIFolder}/${NameOffMRI}_nonlin_norm \
+        --inscout=${fMRIFolder}/${NameOffMRI}_SBRef_nonlin \
+        --oscout=${fMRIFolder}/${NameOffMRI}_SBRef_nonlin_norm \
+        --usejacobian=${UseJacobian} \
+        --fmrimask=${fMRIMask}
 
 
-if [[ ${nEcho} -gt 1 ]]; then
-    log_Msg "Creating echoMeans"
-    # Calculate echoMeans of intensity normalized result
-    tcsEchoes=(); tcsEchoesMu=();args=""
-    for iE in $(seq 0 $((nEcho-1))); do
-        tcsEchoes[iE]="${EchoDir}/${NameOffMRI}_nonlin_norm_E$(printf "%02d" "$iE").nii.gz"
-        tcsEchoesMu[iE]="${EchoDir}/${NameOffMRI}_nonlin_norm_E$(printf "%02d" "$iE")Mean.nii.gz"
-        wb_command -volume-merge "${tcsEchoes[iE]}" -volume "${fMRIFolder}/${NameOffMRI}_nonlin_norm.nii.gz" -subvolume $((1 + FramesPerEcho * iE)) -up-to $((FramesPerEcho * (iE + 1)))
-        wb_command -volume-reduce "${tcsEchoes[iE]}" MEAN "${tcsEchoesMu[iE]}"
-        args="${args} -volume ${tcsEchoesMu[iE]} -subvolume 1"
-    done # iE
-    wb_command -volume-merge ${EchoDir}/${NameOffMRI}_nonlin_norm_EchoMeans.nii.gz ${args}
+    if [[ ${nEcho} -gt 1 ]]; then
+        log_Msg "Creating echoMeans"
+        # Calculate echoMeans of intensity normalized result
+        tcsEchoes=(); tcsEchoesMu=();args=""
+        for iE in $(seq 0 $((nEcho-1))); do
+            tcsEchoes[iE]="${EchoDir}/${NameOffMRI}_nonlin_norm_E$(printf "%02d" "$iE").nii.gz"
+            tcsEchoesMu[iE]="${EchoDir}/${NameOffMRI}_nonlin_norm_E$(printf "%02d" "$iE")Mean.nii.gz"
+            wb_command -volume-merge "${tcsEchoes[iE]}" -volume "${fMRIFolder}/${NameOffMRI}_nonlin_norm.nii.gz" -subvolume $((1 + FramesPerEcho * iE)) -up-to $((FramesPerEcho * (iE + 1)))
+            wb_command -volume-reduce "${tcsEchoes[iE]}" MEAN "${tcsEchoesMu[iE]}"
+            args="${args} -volume ${tcsEchoesMu[iE]} -subvolume 1"
+        done # iE
+        wb_command -volume-merge ${EchoDir}/${NameOffMRI}_nonlin_norm_EchoMeans.nii.gz ${args}
 
-    # # fit T2* and S0 then Combine Echoes
-    log_Msg "Fitting T2* and combining Echoes"
+        # # fit T2* and S0 then Combine Echoes
+        log_Msg "Fitting T2* and combining Echoes"
 
-    ${RUN} ln -sf ${fMRIFolder}/${NameOffMRI}_nonlin_norm.nii.gz ${EchoDir}/${NameOffMRI}_nonlin_norm.nii.gz 
-    ${RUN} ln -sf ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin_norm.nii.gz ${EchoDir}/${NameOffMRI}_SBRef_nonlin_norm.nii.gz 
+        ${RUN} ln -sf ${fMRIFolder}/${NameOffMRI}_nonlin_norm.nii.gz ${EchoDir}/${NameOffMRI}_nonlin_norm.nii.gz 
+        ${RUN} ln -sf ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin_norm.nii.gz ${EchoDir}/${NameOffMRI}_SBRef_nonlin_norm.nii.gz 
 
-    echo ${echoTE} > ${EchoDir}/TEs.txt
+        echo ${echoTE} > ${EchoDir}/TEs.txt
 
-    case "$MatlabMode" in
-        (0)
-            matlab_cmd=("$PipelineScripts/Compiled_multiEchoCombine/run_multiEchoCombine.sh" "$MATLAB_COMPILER_RUNTIME" \
-                "${EchoDir}/${NameOffMRI}_nonlin_norm.nii.gz" \
-                "${EchoDir}/TEs.txt" \
-                "${EchoDir}/${NameOffMRI}_nonlin_norm_EchoMeans.nii.gz" \
-                "${EchoDir}/${NameOffMRI}_SBRef_nonlin_norm.nii.gz")
-            log_Msg "Run compiled MATLAB: ${matlab_cmd[*]}"
-            "${matlab_cmd[@]}"
-            ;;
-        (1 | 2)
-            matlab_code="
-                addpath('${PipelineScripts}');
-                multiEchoCombine('${EchoDir}/${NameOffMRI}_nonlin_norm.nii.gz', '${EchoDir}/TEs.txt', '${EchoDir}/${NameOffMRI}_nonlin_norm_EchoMeans.nii.gz', '${EchoDir}/${NameOffMRI}_SBRef_nonlin_norm.nii.gz');"
-            log_Msg "running matlab code: $matlab_code"
-            "${matlab_interpreter[@]}" <<<"${matlab_code}"
-            echo
-            ;;
-    esac
-fi
+        case "$MatlabMode" in
+            (0)
+                matlab_cmd=("$PipelineScripts/Compiled_multiEchoCombine/run_multiEchoCombine.sh" "$MATLAB_COMPILER_RUNTIME" \
+                    "${EchoDir}/${NameOffMRI}_nonlin_norm.nii.gz" \
+                    "${EchoDir}/TEs.txt" \
+                    "${EchoDir}/${NameOffMRI}_nonlin_norm_EchoMeans.nii.gz" \
+                    "${EchoDir}/${NameOffMRI}_SBRef_nonlin_norm.nii.gz")
+                log_Msg "Run compiled MATLAB: ${matlab_cmd[*]}"
+                "${matlab_cmd[@]}"
+                ;;
+            (1 | 2)
+                matlab_code="
+                    addpath('${PipelineScripts}');
+                    multiEchoCombine('${EchoDir}/${NameOffMRI}_nonlin_norm.nii.gz', '${EchoDir}/TEs.txt', '${EchoDir}/${NameOffMRI}_nonlin_norm_EchoMeans.nii.gz', '${EchoDir}/${NameOffMRI}_SBRef_nonlin_norm.nii.gz');"
+                log_Msg "running matlab code: $matlab_code"
+                "${matlab_interpreter[@]}" <<<"${matlab_code}"
+                echo
+                ;;
+        esac
+    fi
 
-#Copy selected files to ResultsFolder
-if [[ ${nEcho} -gt 1 ]]; then
-    ${RUN} cp ${EchoDir}/${NameOffMRI}_nonlin_norm_CombEchoes.nii.gz ${ResultsFolder}/${NameOffMRI}.nii.gz
-    ${RUN} cp ${EchoDir}/${NameOffMRI}_SBRef_nonlin_norm_CombEchoes.nii.gz ${ResultsFolder}/${NameOffMRI}_SBRef.nii.gz
+    #Copy selected files to ResultsFolder
+    if [[ ${nEcho} -gt 1 ]]; then
+        ${RUN} cp ${EchoDir}/${NameOffMRI}_nonlin_norm_CombEchoes.nii.gz ${ResultsFolder}/${NameOffMRI}.nii.gz
+        ${RUN} cp ${EchoDir}/${NameOffMRI}_SBRef_nonlin_norm_CombEchoes.nii.gz ${ResultsFolder}/${NameOffMRI}_SBRef.nii.gz
 
-    ${RUN} cp ${fMRIFolder}/${NameOffMRI}_nonlin_norm.nii.gz ${ResultsFolder}/${NameOffMRI}_Echoes.nii.gz
-    ${RUN} cp ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin_norm.nii.gz ${ResultsFolder}/${NameOffMRI}_SBRef_Echoes.nii.gz
+        ${RUN} cp ${fMRIFolder}/${NameOffMRI}_nonlin_norm.nii.gz ${ResultsFolder}/${NameOffMRI}_Echoes.nii.gz
+        ${RUN} cp ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin_norm.nii.gz ${ResultsFolder}/${NameOffMRI}_SBRef_Echoes.nii.gz
 
-    ${RUN} cp ${EchoDir}/${NameOffMRI}_nonlin_norm_T2star.nii.gz ${ResultsFolder}/${NameOffMRI}_T2star.nii.gz
-    ${RUN} cp ${EchoDir}/${NameOffMRI}_nonlin_norm_S0.nii.gz ${ResultsFolder}/${NameOffMRI}_S0.nii.gz
-    ${RUN} cp ${EchoDir}/${NameOffMRI}_nonlin_norm_EchoWeights.nii.gz ${ResultsFolder}/${NameOffMRI}_EchoWeights.nii.gz
-    ${RUN} cp ${EchoDir}/${NameOffMRI}_nonlin_norm_EchoMeans.nii.gz ${ResultsFolder}/${NameOffMRI}_EchoMeans.nii.gz
+        ${RUN} cp ${EchoDir}/${NameOffMRI}_nonlin_norm_T2star.nii.gz ${ResultsFolder}/${NameOffMRI}_T2star.nii.gz
+        ${RUN} cp ${EchoDir}/${NameOffMRI}_nonlin_norm_S0.nii.gz ${ResultsFolder}/${NameOffMRI}_S0.nii.gz
+        ${RUN} cp ${EchoDir}/${NameOffMRI}_nonlin_norm_EchoWeights.nii.gz ${ResultsFolder}/${NameOffMRI}_EchoWeights.nii.gz
+        ${RUN} cp ${EchoDir}/${NameOffMRI}_nonlin_norm_EchoMeans.nii.gz ${ResultsFolder}/${NameOffMRI}_EchoMeans.nii.gz
+    else
+        ${RUN} cp ${fMRIFolder}/${NameOffMRI}_nonlin_norm.nii.gz ${ResultsFolder}/${NameOffMRI}.nii.gz
+        ${RUN} cp ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin_norm.nii.gz ${ResultsFolder}/${NameOffMRI}_SBRef.nii.gz
+    fi
+
+    ${RUN} cp ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin_norm_nomask.nii.gz ${ResultsFolder}/${NameOffMRI}_SBRef_nomask.nii.gz
+    ${RUN} cp ${fMRIFolder}/${JacobianOut}_MNI.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_${JacobianOut}.nii.gz
+    ${RUN} cp ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}
+    ${RUN} cp ${fMRIFolder}/${NameOffMRI}_nonlin_mask.nii.gz ${ResultsFolder}/${NameOffMRI}_fovmask.nii.gz
+    ${RUN} cp ${fMRIFolder}/${NameOffMRI}_nonlin_finalmask.nii.gz ${ResultsFolder}/${NameOffMRI}_finalmask.nii.gz
+
+    ${RUN} cp ${fMRIFolder}/${NameOffMRI}_nonlin_finalmask.stats.txt ${ResultsFolder}/${NameOffMRI}_finalmask.stats.txt
+    ${RUN} cp ${fMRIFolder}/${MovementRegressor}.txt ${ResultsFolder}
+    ${RUN} cp ${fMRIFolder}/${MovementRegressor}_dt.txt ${ResultsFolder}
+    ${RUN} cp ${fMRIFolder}/Movement_RelativeRMS.txt ${ResultsFolder}
+    ${RUN} cp ${fMRIFolder}/Movement_AbsoluteRMS.txt ${ResultsFolder}
+    ${RUN} cp ${fMRIFolder}/Movement_RelativeRMS_mean.txt ${ResultsFolder}
+    ${RUN} cp ${fMRIFolder}/Movement_AbsoluteRMS_mean.txt ${ResultsFolder}
 else
-    ${RUN} cp ${fMRIFolder}/${NameOffMRI}_nonlin_norm.nii.gz ${ResultsFolder}/${NameOffMRI}.nii.gz
-    ${RUN} cp ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin_norm.nii.gz ${ResultsFolder}/${NameOffMRI}_SBRef.nii.gz
+    echo "SKIP: Result, Intensity Normalization and Bias Removal"
 fi
-
-${RUN} cp ${fMRIFolder}/${NameOffMRI}_SBRef_nonlin_norm_nomask.nii.gz ${ResultsFolder}/${NameOffMRI}_SBRef_nomask.nii.gz
-${RUN} cp ${fMRIFolder}/${JacobianOut}_MNI.${FinalfMRIResolution}.nii.gz ${ResultsFolder}/${NameOffMRI}_${JacobianOut}.nii.gz
-${RUN} cp ${fMRIFolder}/${FreeSurferBrainMask}.${FinalfMRIResolution}.nii.gz ${ResultsFolder}
-${RUN} cp ${fMRIFolder}/${NameOffMRI}_nonlin_mask.nii.gz ${ResultsFolder}/${NameOffMRI}_fovmask.nii.gz
-${RUN} cp ${fMRIFolder}/${NameOffMRI}_nonlin_finalmask.nii.gz ${ResultsFolder}/${NameOffMRI}_finalmask.nii.gz
-
-${RUN} cp ${fMRIFolder}/${NameOffMRI}_nonlin_finalmask.stats.txt ${ResultsFolder}/${NameOffMRI}_finalmask.stats.txt
-${RUN} cp ${fMRIFolder}/${MovementRegressor}.txt ${ResultsFolder}
-${RUN} cp ${fMRIFolder}/${MovementRegressor}_dt.txt ${ResultsFolder}
-${RUN} cp ${fMRIFolder}/Movement_RelativeRMS.txt ${ResultsFolder}
-${RUN} cp ${fMRIFolder}/Movement_AbsoluteRMS.txt ${ResultsFolder}
-${RUN} cp ${fMRIFolder}/Movement_RelativeRMS_mean.txt ${ResultsFolder}
-${RUN} cp ${fMRIFolder}/Movement_AbsoluteRMS_mean.txt ${ResultsFolder}
 
 #Basic Cleanup
 ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_nonlin_norm
