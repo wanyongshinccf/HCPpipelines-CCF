@@ -1078,31 +1078,39 @@ else
     echo "SKIP: Result, Intensity Normalization and Bias Removal"
 fi
 
-#Basic Cleanup
-${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_nonlin_norm
+if [[ $workstep = "all" ||  $workstep = "clean" ||  $workstep = "onesample" ]]; then
+    log_Msg "Clean up (even for HCPpipeline-5.0.0 output)"
 
-#Econ
-#${FSLDIR}/bin/imrm "$fMRIFolder"/"$OrigTCSName"
-${FSLDIR}/bin/imrm "$fMRIFolder"/"$NameOffMRI"_gdc #This can be checked with the SBRef
-${FSLDIR}/bin/imrm "$fMRIFolder"/"$NameOffMRI"_mc #This can be checked with the unmasked spatially corrected data
+    #Basic Cleanup
+    ${FSLDIR}/bin/imrm "$fMRIFolder"/"$OrigTCSName" 
+    ${FSLDIR}/bin/imrm "$fMRIFolder"/"$OrigTCSName"_nonlin 
+    ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_nonlin
+    ${FSLDIR}/bin/imrm ${fMRIFolder}/${NameOffMRI}_nonlin_norm
 
-# clean up split echo(s)
-if [[ $nEcho -gt 1 ]]; then
-    for iEcho in $(seq 0 $((nEcho-1))) ; do
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}"
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_nonlin"
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_nonlin_mask"
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_SBRef_nonlin"
+    #Econ
+    ${FSLDIR}/bin/imrm "$fMRIFolder"/"$NameOffMRI"_gdc #This can be checked with the SBRef
+    ${FSLDIR}/bin/imrm "$fMRIFolder"/"$NameOffMRI"_mc #This can be checked with the unmasked spatially corrected data
 
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesGdc[iEcho]}"
+    # clean up split echo(s)
+    if [[ $nEcho -gt 1 ]]; then
+        for iEcho in $(seq 0 $((nEcho-1))) ; do
+            ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}"
+            ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_nonlin"
+            ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_nonlin_mask"
+            ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesOrig[iEcho]}_SBRef_nonlin"
 
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${sctEchoesOrig[iEcho]}"
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${sctEchoesGdc[iEcho]}"
-        ${FSLDIR}/bin/imrm "${fMRIFolder}/${sctEchoesGdc[iEcho]}_mask"
-    done
-    ${FSLDIR}/bin/imrm "${tcsEchoes[@]}"
-    ${FSLDIR}/bin/imrm "${tcsEchoesMu[@]}"
-fi
+            ${FSLDIR}/bin/imrm "${fMRIFolder}/${tcsEchoesGdc[iEcho]}"
+
+            ${FSLDIR}/bin/imrm "${fMRIFolder}/${sctEchoesOrig[iEcho]}"
+            ${FSLDIR}/bin/imrm "${fMRIFolder}/${sctEchoesGdc[iEcho]}"
+            ${FSLDIR}/bin/imrm "${fMRIFolder}/${sctEchoesGdc[iEcho]}_mask"
+        done
+        ${FSLDIR}/bin/imrm "${tcsEchoes[@]}"
+        ${FSLDIR}/bin/imrm "${tcsEchoesMu[@]}"
+    fi
+else
+    echo "SKIP: Clean up"
+fi    
 
 log_Msg "Completed!"
 
